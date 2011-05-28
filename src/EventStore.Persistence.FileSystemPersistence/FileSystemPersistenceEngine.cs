@@ -28,7 +28,24 @@ namespace EventStore.Persistence.FileSystemPersistence
 
 		public IEnumerable<Commit> GetFrom(Guid streamId, int minRevision, int maxRevision)
 		{
-			throw new NotImplementedException();
+			using (var fileStream = File.Open(streamId.GetStreamLocation(this.dataStorage),FileMode.Open,FileAccess.Read,FileShare.Read))
+			{
+				int position = 0;
+
+				while (position < minRevision && fileStream.Position <= fileStream.Length)
+				{
+					fileStream.Read(MD5.Create());
+					position++;
+				}
+
+				for (int i=minRevision;i<=maxRevision;i++)
+				{
+					var fileSystemCommit = fileStream.Read(MD5.Create());
+					if (false == fileSystemCommit.HasValue)
+						yield break;
+					yield return fileSystemCommit.Value.FromFileSystemCommit(this.serializer);
+				}
+			}
 		}
 
 		public void Commit(Commit attempt)

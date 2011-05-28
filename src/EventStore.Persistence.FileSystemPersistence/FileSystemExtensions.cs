@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
@@ -20,6 +21,12 @@ namespace EventStore.Persistence.FileSystemPersistence
 						Headers = serializer.Serialize(commit.Headers),
 						Blob = serializer.Serialize(commit.Events)
 			       	};
+		}
+		public static Commit FromFileSystemCommit(this FileSystemCommit commit, ISerialize serializer)
+		{
+			return new Commit(commit.StreamId, commit.StreamRevision, commit.CommitId, commit.CommitSequence, commit.CommitStamp,
+			                  serializer.Deserialize<Dictionary<String, Object>>(commit.Headers),
+			                  serializer.Deserialize<List<EventMessage>>(commit.Blob));
 		}
 		public static FileSystemCommit? Read(this FileStream fileStream, HashAlgorithm hashAlgorithm)
 		{
@@ -96,6 +103,11 @@ namespace EventStore.Persistence.FileSystemPersistence
 			{
 				throw new StorageException(e.Message, e);
 			}
+		}
+
+		public static string GetStreamLocation(this Guid streamId, DirectoryInfo dataStorage)
+		{
+			return Path.Combine(dataStorage.FullName, streamId.ToString("n"));
 		}
 	}
 }
