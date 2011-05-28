@@ -41,6 +41,7 @@
       <Link>Properties\VersionAssemblyInfo.cs</Link>
     </Compile>
     <Compile Include="ConfigurationExtensions.cs" />
+    <Compile Include="Engines\AcceptanceTestFileSystemPersistenceFactory.cs" />
     <Compile Include="Engines\AcceptanceTestMongoPersistenceFactory.cs" />
     <Compile Include="Engines\AcceptanceTestRavenPersistenceFactory.cs" />
     <Compile Include="Engines\AcceptanceTestSqlPersistenceFactory.cs" />
@@ -61,6 +62,10 @@
     </Content>
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\EventStore.Persistence.FileSystemPersistence\EventStore.Persistence.FileSystemPersistence.csproj">
+      <Project>{7BACA9F7-8A46-4F9C-9D01-DE7352006469}</Project>
+      <Name>EventStore.Persistence.FileSystemPersistence</Name>
+    </ProjectReference>
     <ProjectReference Include="..\..\proj\EventStore.Core\EventStore.Core.csproj">
       <Project>{D6413244-42F5-4233-B347-D0A804B09CC9}</Project>
       <Name>EventStore.Core</Name>
