@@ -1,4 +1,7 @@
-﻿namespace EventStore.Persistence.FileSystemPersistence
+﻿using System;
+using EventStore.Serialization;
+
+namespace EventStore.Persistence.FileSystemPersistence
 {
 	public class FileSystemPersistenceFactory : IPersistenceFactory
 	{

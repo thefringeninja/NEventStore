@@ -1,10 +1,24 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Security.Cryptography;
+using System.Threading;
+using EventStore.Serialization;
 
 namespace EventStore.Persistence.FileSystemPersistence
 {
 	public class FileSystemPersistenceEngine : IPersistStreams
 	{
+		private readonly DirectoryInfo dataStorage;
+		private readonly ISerialize serializer;
+		private int initialized;
+
+		public FileSystemPersistenceEngine(string directory, ISerialize serializer)
+		{
+			this.dataStorage = new DirectoryInfo(directory);
+			this.serializer = serializer;
+		}
+
 		#region IPersistStreams Members
 
 		public void Dispose()
@@ -19,7 +33,8 @@ namespace EventStore.Persistence.FileSystemPersistence
 
 		public void Commit(Commit attempt)
 		{
-			throw new NotImplementedException();
+			attempt.ToFileSystemCommit(serializer)
+				.Write(dataStorage, MD5.Create());
 		}
 
 		public Snapshot GetSnapshot(Guid streamId, int maxRevision)
@@ -39,7 +54,21 @@ namespace EventStore.Persistence.FileSystemPersistence
 
 		public void Initialize()
 		{
-			throw new NotImplementedException();
+			if (Interlocked.Increment(ref this.initialized) > 1)
+				return;
+
+			try
+			{
+				if (false == dataStorage.Exists)
+				{
+					dataStorage.Create();
+				}
+			}
+			catch (Exception e)
+			{
+				throw new StorageUnavailableException(e.Message, e);
+			}
+
 		}
 
 		public IEnumerable<Commit> GetFrom(DateTime start)
