@@ -144,22 +144,6 @@ AND NOT EXISTS
    AND CommitSequence = @CommitSequence
    AND CommitId = @CommitId;</value>
   </data>
-  <data name="GetCommitsFromInstant" xml:space="preserve">
-    <value>SELECT BucketId, StreamId, StreamIdOriginal, StreamRevision, CommitId, CommitSequence, CommitStamp, CheckpointNumber, Headers, Payload
-  FROM Commits
- WHERE BucketId = @BucketId AND CommitStamp &gt;= @CommitStamp
- ORDER BY CommitStamp, StreamId, CommitSequence
- LIMIT @Limit OFFSET @Skip;</value>
-  </data>
-  <data name="GetCommitsFromToInstant" xml:space="preserve">
-    <value>SELECT BucketId, StreamId, StreamIdOriginal, StreamRevision, CommitId, CommitSequence, CommitStamp, CheckpointNumber, Headers, Payload
-  FROM Commits
- WHERE BucketId = @BucketId
-   AND CommitStamp &gt;= @CommitStampStart
-   AND CommitStamp &lt; @CommitStampEnd
- ORDER BY CommitStamp, StreamId, CommitSequence
- LIMIT @Limit OFFSET @Skip;</value>
-  </data>
   <data name="GetCommitsFromStartingRevision" xml:space="preserve">
     <value>SELECT BucketId, StreamId, StreamIdOriginal, StreamRevision, CommitId, CommitSequence, CommitStamp,  CheckpointNumber, Headers, Payload
   FROM Commits

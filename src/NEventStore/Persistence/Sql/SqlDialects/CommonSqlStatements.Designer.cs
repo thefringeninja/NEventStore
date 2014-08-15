@@ -133,19 +133,6 @@ namespace NEventStore.Persistence.Sql.SqlDialects {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to SELECT BucketId, StreamId, StreamIdOriginal, StreamRevision, CommitId, CommitSequence, CommitStamp, CheckpointNumber, Headers, Payload
-        ///  FROM Commits
-        /// WHERE BucketId = @BucketId AND CommitStamp &gt;= @CommitStamp
-        /// ORDER BY CommitStamp, StreamId, CommitSequence
-        /// LIMIT @Limit OFFSET @Skip;.
-        /// </summary>
-        internal static string GetCommitsFromInstant {
-            get {
-                return ResourceManager.GetString("GetCommitsFromInstant", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to SELECT BucketId, StreamId, StreamIdOriginal, StreamRevision, CommitId, CommitSequence, CommitStamp,  CheckpointNumber, Headers, Payload
         ///  FROM Commits
         /// WHERE BucketId = @BucketId
@@ -159,21 +146,6 @@ namespace NEventStore.Persistence.Sql.SqlDialects {
         internal static string GetCommitsFromStartingRevision {
             get {
                 return ResourceManager.GetString("GetCommitsFromStartingRevision", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to SELECT BucketId, StreamId, StreamIdOriginal, StreamRevision, CommitId, CommitSequence, CommitStamp, CheckpointNumber, Headers, Payload
-        ///  FROM Commits
-        /// WHERE BucketId = @BucketId
-        ///   AND CommitStamp &gt;= @CommitStampStart
-        ///   AND CommitStamp &lt; @CommitStampEnd
-        /// ORDER BY CommitStamp, StreamId, CommitSequence
-        /// LIMIT @Limit OFFSET @Skip;.
-        /// </summary>
-        internal static string GetCommitsFromToInstant {
-            get {
-                return ResourceManager.GetString("GetCommitsFromToInstant", resourceCulture);
             }
         }
         

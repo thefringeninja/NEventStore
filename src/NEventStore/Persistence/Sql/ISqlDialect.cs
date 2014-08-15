@@ -14,8 +14,6 @@ namespace NEventStore.Persistence.Sql
         string DeleteStream { get; }
 
         string GetCommitsFromStartingRevision { get; }
-        string GetCommitsFromInstant { get; }
-        string GetCommitsFromToInstant { get; }
 
         string PersistCommit { get; }
         string DuplicateCommit { get; }
@@ -33,8 +31,7 @@ namespace NEventStore.Persistence.Sql
         string CommitId { get; }
         string CommitSequence { get; }
         string CommitStamp { get; }
-        string CommitStampStart { get; }
-        string CommitStampEnd { get; }
+
         string Headers { get; }
         string Payload { get; }
         string Threshold { get; }

@@ -23,16 +23,6 @@ namespace NEventStore.Persistence.Sql.SqlDialects
             get { return NaturalPaging(base.GetCommitsFromStartingRevision); }
         }
 
-        public override string GetCommitsFromInstant
-        {
-            get { return CommonTableExpressionPaging(base.GetCommitsFromInstant); }
-        }
-
-        public override string GetCommitsFromToInstant
-        {
-            get { return CommonTableExpressionPaging(base.GetCommitsFromToInstant); }
-        }
-
         public override string PersistCommit
         {
             get { return MsSqlStatements.PersistCommits; }

@@ -161,13 +161,6 @@ WHERE	(
   AND CommitId = :CommitId
 )</value>
   </data>
-  <data name="GetCommitsFromInstant" xml:space="preserve">
-    <value>/*GetCommitsFromInstant*/
-SELECT BucketId, StreamId, StreamIdOriginal, StreamRevision, CommitId, CommitSequence, CommitStamp, CheckpointNumber, Headers, Payload
-FROM Commits 
-WHERE BucketId = :BucketId AND CommitStamp &gt;= :CommitStamp
-ORDER BY CommitStamp, StreamId, CommitSequence</value>
-  </data>
   <data name="GetCommitsFromStartingRevision" xml:space="preserve">
     <value>/*GetCommitsFromStartingRevision*/
 SELECT BucketId, StreamId, StreamIdOriginal, StreamRevision, CommitId, CommitSequence, CommitStamp, CheckpointNumber, Headers, Payload

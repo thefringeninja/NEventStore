@@ -34,16 +34,6 @@ namespace NEventStore.Persistence.Sql.SqlDialects
             get { return CommonSqlStatements.GetCommitsFromStartingRevision; }
         }
 
-        public virtual string GetCommitsFromInstant
-        {
-            get { return CommonSqlStatements.GetCommitsFromInstant; }
-        }
-
-        public virtual string GetCommitsFromToInstant
-        {
-            get { return CommonSqlStatements.GetCommitsFromToInstant; }
-        }
-
         public abstract string PersistCommit { get; }
 
         public virtual string DuplicateCommit
@@ -109,16 +99,6 @@ namespace NEventStore.Persistence.Sql.SqlDialects
         public virtual string CommitStamp
         {
             get { return "@CommitStamp"; }
-        }
-
-        public virtual string CommitStampStart
-        {
-            get { return "@CommitStampStart"; }
-        }
-
-        public virtual string CommitStampEnd
-        {
-            get { return "@CommitStampEnd"; }
         }
 
         public virtual string Headers
