@@ -60,12 +60,7 @@ namespace NEventStore.Persistence
             _original.Initialize();
         }
 
-        public IEnumerable<ICommit> GetFrom(string bucketId, DateTime start)
-        {
-            return ExecuteHooks(_original.GetFrom(bucketId, start));
-        }
-
-        public IEnumerable<ICommit> GetFrom(string checkpointToken)
+        public IEnumerable<ICommit> GetFrom(string checkpointToken = null)
         {
             return ExecuteHooks(_original.GetFrom(checkpointToken));
         }
@@ -73,11 +68,6 @@ namespace NEventStore.Persistence
         public ICheckpoint GetCheckpoint(string checkpointToken)
         {
             return _original.GetCheckpoint(checkpointToken);
-        }
-
-        public IEnumerable<ICommit> GetFromTo(string bucketId, DateTime start, DateTime end)
-        {
-            return ExecuteHooks(_original.GetFromTo(bucketId, start, end));
         }
 
         public void Purge()

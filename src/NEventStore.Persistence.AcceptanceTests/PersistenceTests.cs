@@ -476,76 +476,7 @@ namespace NEventStore.Persistence.AcceptanceTests
         }
     }
 
-    public class when_reading_all_commits_from_a_particular_point_in_time : PersistenceEngineConcern
-    {
-        private ICommit[] _committed;
-        private CommitAttempt _first;
-        private DateTime _now;
-        private ICommit _second;
-        private string _streamId;
-        private ICommit _third;
-
-        protected override void Context()
-        {
-            _streamId = Guid.NewGuid().ToString();
-
-            _now = SystemTime.UtcNow.AddYears(1);
-            _first = _streamId.BuildAttempt(_now.AddSeconds(1));
-            Persistence.Commit(_first);
-
-            _second = Persistence.CommitNext(_first);
-            _third = Persistence.CommitNext(_second);
-            Persistence.CommitNext(_third);
-        }
-
-        protected override void Because()
-        {
-            _committed = Persistence.GetFrom(_now).ToArray();
-        }
-
-        [Fact]
-        public void should_return_all_commits_on_or_after_the_point_in_time_specified()
-        {
-            _committed.Length.Should().Be(4);
-        }
-    }
-
-    public class when_paging_over_all_commits_from_a_particular_point_in_time : PersistenceEngineConcern
-    {
-        private CommitAttempt[] _committed;
-        private ICommit[] _loaded;
-        private DateTime _start;
-        private Guid _streamId;
-
-        protected override void Context()
-        {
-            _start = SystemTime.UtcNow;
-            // Due to loss in precision in various storage engines, we're rounding down to the
-            // nearest second to ensure include all commits from the 'start'.
-            _start = _start.AddSeconds(-1);
-            _committed = Persistence.CommitMany(ConfiguredPageSizeForTesting + 2).ToArray();
-        }
-
-        protected override void Because()
-        {
-            _loaded = Persistence.GetFrom(_start).ToArray();
-        }
-
-        [Fact]
-        public void should_load_the_same_number_of_commits_which_have_been_persisted()
-        {
-            _loaded.Length.Should().Be(_committed.Length);
-        }
-
-        [Fact]
-        public void should_load_the_same_commits_which_have_been_persisted()
-        {
-            _committed
-                .All(commit => _loaded.SingleOrDefault(loaded => loaded.CommitId == commit.CommitId) != null)
-                .Should().BeTrue();
-        }
-    }
-
+    
     public class when_paging_over_all_commits_from_a_particular_checkpoint : PersistenceEngineConcern
     {
         private List<Guid> _committed;
@@ -576,23 +507,6 @@ namespace NEventStore.Persistence.AcceptanceTests
         }
     }
 
-    public class when_reading_all_commits_from_the_year_1_AD : PersistenceEngineConcern
-    {
-        private Exception _thrown;
-
-        protected override void Because()
-        {
-            // ReSharper disable once ReturnValueOfPureMethodIsNotUsed
-            _thrown = Catch.Exception(() => Persistence.GetFrom(DateTime.MinValue).FirstOrDefault());
-        }
-
-        [Fact]
-        public void should_NOT_throw_an_exception()
-        {
-            _thrown.Should().BeNull();
-        }
-    }
-
     public class when_purging_all_commits : PersistenceEngineConcern
     {
         protected override void Context()
@@ -608,7 +522,7 @@ namespace NEventStore.Persistence.AcceptanceTests
         [Fact]
         public void should_not_find_any_commits_stored()
         {
-            Persistence.GetFrom(DateTime.MinValue).Count().Should().Be(0);
+            Persistence.GetFrom().Count().Should().Be(0);
         }
 
         [Fact]
@@ -745,43 +659,6 @@ namespace NEventStore.Persistence.AcceptanceTests
         }
     }
 
-    public class when_reading_all_commits_from_a_particular_point_in_time_and_there_are_streams_in_multiple_buckets : PersistenceEngineConcern
-    {
-        const string _bucketAId = "a";
-        const string _bucketBId = "b";
-
-        private static DateTime _now;
-        private static ICommit[] _returnedCommits;
-        private CommitAttempt _commitToBucketB;
-
-        protected override void Context()
-        {
-            _now = SystemTime.UtcNow.AddYears(1);
-
-            var commitToBucketA = Guid.NewGuid().ToString().BuildAttempt(_now.AddSeconds(1), _bucketAId);
-
-            Persistence.Commit(commitToBucketA);
-            Persistence.Commit(commitToBucketA = commitToBucketA.BuildNextAttempt());
-            Persistence.Commit(commitToBucketA = commitToBucketA.BuildNextAttempt());
-            Persistence.Commit(commitToBucketA.BuildNextAttempt());
-
-            _commitToBucketB = Guid.NewGuid().ToString().BuildAttempt(_now.AddSeconds(1), _bucketBId);
-
-            Persistence.Commit(_commitToBucketB);
-        }
-
-        protected override void Because()
-        {
-            _returnedCommits = Persistence.GetFrom(_bucketAId, _now).ToArray();
-        }
-
-        [Fact]
-        public void should_not_return_commits_from_other_buckets()
-        {
-            _returnedCommits.Any(c => c.CommitId.Equals(_commitToBucketB.CommitId)).Should().BeFalse();
-        }
-    }
-
     public class when_getting_all_commits_since_checkpoint_and_there_are_streams_in_multiple_buckets : PersistenceEngineConcern
     {
         private ICommit[] _commits;
@@ -840,13 +717,21 @@ namespace NEventStore.Persistence.AcceptanceTests
         [Fact]
         public void should_purge_all_commits_stored_in_bucket_a()
         {
-            Persistence.GetFrom(_bucketAId, DateTime.MinValue).Count().Should().Be(0);
+            Persistence
+                .GetFrom()
+                .Select(c => c.BucketId == _bucketAId)
+                .Should()
+                .BeEmpty();
         }
 
         [Fact]
         public void should_purge_all_commits_stored_in_bucket_b()
         {
-            Persistence.GetFrom(_bucketBId, DateTime.MinValue).Count().Should().Be(0);
+            Persistence
+                .GetFrom()
+                .Select(c => c.BucketId == _bucketBId)
+                .Should()
+                .BeEmpty();
         }
 
         [Fact]
@@ -880,7 +765,7 @@ namespace NEventStore.Persistence.AcceptanceTests
                     stream.CommitChanges(Guid.NewGuid());
                 }
             }
-            ICommit[] commits = Persistence.GetFrom(DateTime.MinValue).ToArray();
+            ICommit[] commits = Persistence.GetFrom().ToArray();
             _commits = Persistence.GetFrom().ToArray();
         }
 
@@ -1053,7 +938,7 @@ namespace NEventStore.Persistence.AcceptanceTests
 
         protected IPersistStreams Persistence
         {
-            get { return _fixture.Persistence; ; }
+            get { return _fixture.Persistence; }
         }
 
         protected int ConfiguredPageSizeForTesting

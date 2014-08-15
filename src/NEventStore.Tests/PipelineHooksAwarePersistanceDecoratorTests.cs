@@ -28,50 +28,6 @@ namespace NEventStore
             }
         }
 
-        public class when_reading_the_all_events_from_date : using_underlying_persistence
-        {
-            private ICommit _commit;
-            private DateTime _date;
-            private IPipelineHook _hook1;
-            private IPipelineHook _hook2;
-
-            protected override void Context()
-            {
-                _date = DateTime.Now;
-                _commit = new Commit(Bucket.Default, streamId, 1, Guid.NewGuid(), 1, DateTime.Now, new LongCheckpoint(0).Value, null, null);
-
-                _hook1 = A.Fake<IPipelineHook>();
-                A.CallTo(() => _hook1.Select(_commit)).Returns(_commit);
-                pipelineHooks.Add(_hook1);
-
-                _hook2 = A.Fake<IPipelineHook>();
-                A.CallTo(() => _hook2.Select(_commit)).Returns(_commit);
-                pipelineHooks.Add(_hook2);
-
-                A.CallTo(() => persistence.GetFrom(Bucket.Default, _date)).Returns(new List<ICommit> {_commit});
-            }
-
-            protected override void Because()
-            {
-                // ReSharper disable once ReturnValueOfPureMethodIsNotUsed
-                // Forces enumeration of commits.
-                Decorator.GetFrom(_date).ToList();
-            }
-
-            [Fact]
-            public void should_call_the_underlying_persistence_to_get_events()
-            {
-                A.CallTo(() => persistence.GetFrom(Bucket.Default, _date)).MustHaveHappened(Repeated.Exactly.Once);
-            }
-
-            [Fact]
-            public void should_pass_all_events_through_the_pipeline_hooks()
-            {
-                A.CallTo(() => _hook1.Select(_commit)).MustHaveHappened(Repeated.Exactly.Once);
-                A.CallTo(() => _hook2.Select(_commit)).MustHaveHappened(Repeated.Exactly.Once);
-            }
-        }
-
         public class when_getting_the_all_events_from_min_to_max_revision : using_underlying_persistence
         {
             private ICommit _commit;
@@ -107,52 +63,6 @@ namespace NEventStore
             public void should_call_the_underlying_persistence_to_get_events()
             {
                 A.CallTo(() => persistence.GetFrom(Bucket.Default, _commit.StreamId, 0, int.MaxValue)).MustHaveHappened(Repeated.Exactly.Once);
-            }
-
-            [Fact]
-            public void should_pass_all_events_through_the_pipeline_hooks()
-            {
-                A.CallTo(() => _hook1.Select(_commit)).MustHaveHappened(Repeated.Exactly.Once);
-                A.CallTo(() => _hook2.Select(_commit)).MustHaveHappened(Repeated.Exactly.Once);
-            }
-        }
-
-        public class when_getting_all_events_from_to : using_underlying_persistence
-        {
-            private ICommit _commit;
-            private DateTime _end;
-            private IPipelineHook _hook1;
-            private IPipelineHook _hook2;
-            private DateTime _start;
-
-            protected override void Context()
-            {
-                _start = DateTime.Now;
-                _end = DateTime.Now;
-                _commit = new Commit(Bucket.Default, streamId, 1, Guid.NewGuid(), 1, DateTime.Now, new LongCheckpoint(0).Value, null, null);
-
-                _hook1 = A.Fake<IPipelineHook>();
-                A.CallTo(() => _hook1.Select(_commit)).Returns(_commit);
-                pipelineHooks.Add(_hook1);
-
-                _hook2 = A.Fake<IPipelineHook>();
-                A.CallTo(() => _hook2.Select(_commit)).Returns(_commit);
-                pipelineHooks.Add(_hook2);
-
-                A.CallTo(() => persistence.GetFromTo(Bucket.Default, _start, _end)).Returns(new List<ICommit> {_commit});
-            }
-
-            protected override void Because()
-            {
-                // ReSharper disable once ReturnValueOfPureMethodIsNotUsed
-                // Forces enumeration of commits
-                Decorator.GetFromTo(_start, _end).ToList();
-            }
-
-            [Fact]
-            public void should_call_the_underlying_persistence_to_get_events()
-            {
-                A.CallTo(() => persistence.GetFromTo(Bucket.Default, _start, _end)).MustHaveHappened(Repeated.Exactly.Once);
             }
 
             [Fact]
@@ -207,7 +117,8 @@ namespace NEventStore
 
             protected override void Because()
             {
-                Decorator.GetFrom(null).ToList();
+// ReSharper disable once ReturnValueOfPureMethodIsNotUsed
+                Decorator.GetFrom().ToList();
             }
 
             [Fact]

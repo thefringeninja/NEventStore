@@ -37,15 +37,9 @@ namespace NEventStore.Persistence.InMemory
             return this[bucketId].GetFrom(streamId, minRevision, maxRevision);
         }
 
-        public IEnumerable<ICommit> GetFrom(string bucketId, DateTime start)
+        public IEnumerable<ICommit> GetFrom(string checkpointToken = null)
         {
-            ThrowWhenDisposed();
-            Logger.Debug(Resources.GettingAllCommitsFromTime, bucketId, start);
-            return this[bucketId].GetFrom(start);
-        }
-
-        public IEnumerable<ICommit> GetFrom(string checkpointToken)
-        {
+            checkpointToken = checkpointToken ?? "0";
             Logger.Debug(Resources.GettingAllCommitsFromCheckpoint, checkpointToken);
             ICheckpoint checkpoint = LongCheckpoint.Parse(checkpointToken);
             return _buckets
@@ -59,13 +53,6 @@ namespace NEventStore.Persistence.InMemory
         public ICheckpoint GetCheckpoint(string checkpointToken = null)
         {
             return LongCheckpoint.Parse(checkpointToken);
-        }
-
-        public IEnumerable<ICommit> GetFromTo(string bucketId, DateTime start, DateTime end)
-        {
-            ThrowWhenDisposed();
-            Logger.Debug(Resources.GettingAllCommitsFromToTime, start, end);
-            return this[bucketId].GetFromTo(start, end);
         }
 
         public ICommit Commit(CommitAttempt attempt)

@@ -24,16 +24,6 @@ namespace NEventStore.Persistence
         void Initialize();
 
         /// <summary>
-        ///     Gets all commits on or after from the specified starting time.
-        /// </summary>
-        /// <param name="bucketId">The value which uniquely identifies bucket the stream belongs to.</param>
-        /// <param name="start">The point in time at which to start.</param>
-        /// <returns>All commits that have occurred on or after the specified starting time.</returns>
-        /// <exception cref="StorageException" />
-        /// <exception cref="StorageUnavailableException" />
-        IEnumerable<ICommit> GetFrom(string bucketId, DateTime start);
-
-        /// <summary>
         ///     Gets all commits after from the specified checkpoint. Use null to get from the beginning.
         /// </summary>
         /// <param name="checkpointToken">The checkpoint token.</param>
@@ -46,17 +36,6 @@ namespace NEventStore.Persistence
         /// <param name="checkpointToken">The checkpoint token</param>
         /// <returns>A <see cref="ICheckpoint"/> instance.</returns>
         ICheckpoint GetCheckpoint(string checkpointToken = null);
-
-        /// <summary>
-        ///     Gets all commits on or after from the specified starting time and before the specified end time.
-        /// </summary>
-        /// <param name="bucketId">The value which uniquely identifies bucket the stream belongs to.</param>
-        /// <param name="start">The point in time at which to start.</param>
-        /// <param name="end">The point in time at which to end.</param>
-        /// <returns>All commits that have occurred on or after the specified starting time and before the end time.</returns>
-        /// <exception cref="StorageException" />
-        /// <exception cref="StorageUnavailableException" />
-        IEnumerable<ICommit> GetFromTo(string bucketId, DateTime start, DateTime end);
 
         /// <summary>
         ///     Completely DESTROYS the contents of ANY and ALL streams that have been successfully persisted.  Use with caution.

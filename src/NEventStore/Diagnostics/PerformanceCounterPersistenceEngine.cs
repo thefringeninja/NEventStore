@@ -40,19 +40,9 @@ namespace NEventStore.Diagnostics
             return _persistence.GetCheckpoint(checkpointToken);
         }
 
-        public IEnumerable<ICommit> GetFromTo(string bucketId, DateTime start, DateTime end)
-        {
-            return _persistence.GetFromTo(bucketId, start, end);
-        }
-
         public IEnumerable<ICommit> GetFrom(string bucketId, string streamId, int minRevision, int maxRevision)
         {
             return _persistence.GetFrom(bucketId, streamId, minRevision, maxRevision);
-        }
-
-        public IEnumerable<ICommit> GetFrom(string bucketId, DateTime start)
-        {
-            return _persistence.GetFrom(bucketId, start);
         }
 
         public IEnumerable<ICommit> GetFrom(string checkpointToken)

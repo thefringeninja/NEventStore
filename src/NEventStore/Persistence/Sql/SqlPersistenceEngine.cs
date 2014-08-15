@@ -114,44 +114,9 @@ namespace NEventStore.Persistence.Sql
                 });
         }
 
-        public virtual IEnumerable<ICommit> GetFrom(string bucketId, DateTime start)
-        {
-            start = start.AddTicks(-(start.Ticks%TimeSpan.TicksPerSecond)); // Rounds down to the nearest second.
-            start = start < EpochTime ? EpochTime : start;
-
-            Logger.Debug(Messages.GettingAllCommitsFrom, start, bucketId);
-            return ExecuteQuery(query =>
-                {
-                    string statement = _dialect.GetCommitsFromInstant;
-                    query.AddParameter(_dialect.BucketId, bucketId, DbType.AnsiString);
-                    query.AddParameter(_dialect.CommitStamp, start);
-                    return query.ExecutePagedQuery(statement, (q, r) => { })
-                            .Select(x => x.GetCommit(_serializer, _dialect));
-
-                });
-        }
-
         public ICheckpoint GetCheckpoint(string checkpointToken)
         {
             return string.IsNullOrWhiteSpace(checkpointToken) ? null : LongCheckpoint.Parse(checkpointToken);
-        }
-
-        public virtual IEnumerable<ICommit> GetFromTo(string bucketId, DateTime start, DateTime end)
-        {
-            start = start.AddTicks(-(start.Ticks%TimeSpan.TicksPerSecond)); // Rounds down to the nearest second.
-            start = start < EpochTime ? EpochTime : start;
-            end = end < EpochTime ? EpochTime : end;
-
-            Logger.Debug(Messages.GettingAllCommitsFromTo, start, end);
-            return ExecuteQuery(query =>
-                {
-                    string statement = _dialect.GetCommitsFromToInstant;
-                    query.AddParameter(_dialect.BucketId, bucketId, DbType.AnsiString);
-                    query.AddParameter(_dialect.CommitStampStart, start);
-                    query.AddParameter(_dialect.CommitStampEnd, end);
-                    return query.ExecutePagedQuery(statement, (q, r) => { })
-                        .Select(x => x.GetCommit(_serializer, _dialect));
-                });
         }
 
         public virtual ICommit Commit(CommitAttempt attempt)
