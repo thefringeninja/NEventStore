@@ -3,23 +3,19 @@ namespace NEventStore.Persistence.Sql
     using System;
     using System.Collections.Generic;
     using System.Configuration;
-    using System.Data;
     using System.Data.Common;
     using System.Linq;
+    using System.Threading.Tasks;
     using NEventStore.Logging;
 
     public class ConfigurationConnectionFactory : IConnectionFactory
     {
         private const string DefaultConnectionName = "NEventStore";
-
         private static readonly ILog Logger = LogFactory.BuildLogger(typeof (ConfigurationConnectionFactory));
-
         private static readonly IDictionary<string, ConnectionStringSettings> CachedSettings =
             new Dictionary<string, ConnectionStringSettings>();
-
         private static readonly IDictionary<string, DbProviderFactory> CachedFactories =
             new Dictionary<string, DbProviderFactory>();
-
         private readonly string _connectionName;
         private readonly ConnectionStringSettings _connectionStringSettings;
 
@@ -40,7 +36,7 @@ namespace NEventStore.Persistence.Sql
             get { return GetConnectionStringSettings(_connectionName); }
         }
 
-        public virtual IDbConnection Open()
+        public virtual Task<IDbConnectionAsync> Open()
         {
             Logger.Verbose(Messages.OpeningMasterConnection, _connectionName);
             return Open(_connectionName);
@@ -52,14 +48,14 @@ namespace NEventStore.Persistence.Sql
             return factory.GetType();
         }
 
-        protected virtual IDbConnection Open(string connectionName)
+        protected virtual Task<IDbConnectionAsync> Open(string connectionName)
         {
             ConnectionStringSettings setting = GetSetting(connectionName);
             string connectionString = setting.ConnectionString;
             return Open(connectionString, setting);
         }
 
-        protected virtual IDbConnection Open(string connectionString, ConnectionStringSettings setting)
+        protected virtual async Task<IDbConnectionAsync> Open(string connectionString, ConnectionStringSettings setting)
         {
             DbProviderFactory factory = GetFactory(setting);
             DbConnection connection = factory.CreateConnection();
@@ -73,7 +69,7 @@ namespace NEventStore.Persistence.Sql
             try
             {
                 Logger.Verbose(Messages.OpeningConnection, setting.Name);
-                connection.Open();
+                await connection.OpenAsync();
             }
             catch (Exception e)
             {
@@ -81,7 +77,7 @@ namespace NEventStore.Persistence.Sql
                 throw new StorageUnavailableException(e.Message, e);
             }
 
-            return connection;
+            return new DbConnectionAsync(connection);
         }
 
         protected virtual ConnectionStringSettings GetSetting(string connectionName)

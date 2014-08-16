@@ -184,7 +184,7 @@ namespace NEventStore.Persistence.Sql
                     cmd.AddParameter(_dialect.BucketId, snapshot.BucketId, DbType.AnsiString);
                     cmd.AddParameter(_dialect.StreamId, streamId, DbType.AnsiString);
                     cmd.AddParameter(_dialect.StreamRevision, snapshot.StreamRevision);
-                    _dialect.AddPayloadParamater(_connectionFactory, connection, cmd, _serializer.Serialize(snapshot.Payload));
+                    _dialect.AddPayloadParamater(_connectionFactory, connection, cmd, _serializer.Serialize(snapshot.Payload)).Wait();
                     return cmd.ExecuteWithoutExceptions(_dialect.AppendSnapshotToCommit);
                 }) > 0;
         }
@@ -270,7 +270,7 @@ namespace NEventStore.Persistence.Sql
                 cmd.AddParameter(_dialect.CommitSequence, attempt.CommitSequence);
                 cmd.AddParameter(_dialect.CommitStamp, attempt.CommitStamp);
                 cmd.AddParameter(_dialect.Headers, _serializer.Serialize(attempt.Headers));
-                _dialect.AddPayloadParamater(_connectionFactory, connection, cmd, _serializer.Serialize(attempt.Events.ToList()));
+                _dialect.AddPayloadParamater(_connectionFactory, connection, cmd, _serializer.Serialize(attempt.Events.ToList())).Wait();
                 OnPersistCommit(cmd, attempt);
                 var checkpointNumber = cmd.ExecuteScalar(_dialect.PersistCommit).ToLong();
                 return new Commit(
@@ -305,13 +305,13 @@ namespace NEventStore.Persistence.Sql
             ThrowWhenDisposed();
 
             TransactionScope scope = OpenQueryScope();
-            IDbConnection connection = null;
+            IDbConnectionAsync connection = null;
             IDbTransaction transaction = null;
             IDbStatement statement = null;
 
             try
             {
-                connection = _connectionFactory.Open();
+                connection = _connectionFactory.Open().Result;
                 transaction = _dialect.OpenTransaction(connection);
                 statement = _dialect.BuildStatement(scope, connection, transaction);
                 statement.PageSize = _pageSize;
@@ -374,7 +374,7 @@ namespace NEventStore.Persistence.Sql
             ThrowWhenDisposed();
 
             using (TransactionScope scope = OpenCommandScope())
-            using (IDbConnection connection = _connectionFactory.Open())
+            using (IDbConnectionAsync connection = _connectionFactory.Open().Result)
             using (IDbTransaction transaction = _dialect.OpenTransaction(connection))
             using (IDbStatement statement = _dialect.BuildStatement(scope, connection, transaction))
             {

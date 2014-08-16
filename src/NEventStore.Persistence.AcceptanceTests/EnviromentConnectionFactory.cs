@@ -1,9 +1,9 @@
 namespace NEventStore.Persistence.AcceptanceTests
 {
     using System;
-    using System.Data;
     using System.Data.Common;
     using System.Diagnostics;
+    using System.Threading.Tasks;
     using NEventStore.Persistence.Sql;
 
     public class EnviromentConnectionFactory : IConnectionFactory
@@ -17,17 +17,7 @@ namespace NEventStore.Persistence.AcceptanceTests
             _dbProviderFactory = DbProviderFactories.GetFactory(providerInvariantName);
         }
 
-        public IDbConnection Open()
-        {
-            return OpenInternal();
-        }
-
-        public Type GetDbProviderFactoryType()
-        {
-            return _dbProviderFactory.GetType();
-        }
-
-        private IDbConnection OpenInternal()
+        public async Task<IDbConnectionAsync> Open()
         {
             string connectionString = Environment.GetEnvironmentVariable(_envVarKey, EnvironmentVariableTarget.Process);
             if (connectionString == null)
@@ -46,13 +36,18 @@ namespace NEventStore.Persistence.AcceptanceTests
             connection.ConnectionString = connectionString;
             try
             {
-                connection.Open();
+                await connection.OpenAsync();
             }
             catch (Exception e)
             {
                 throw new StorageUnavailableException(e.Message, e);
             }
-            return connection;
+            return new DbConnectionAsync(connection);
+        }
+
+        public Type GetDbProviderFactoryType()
+        {
+            return _dbProviderFactory.GetType();
         }
     }
 }

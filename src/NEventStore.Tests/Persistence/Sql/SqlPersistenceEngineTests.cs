@@ -21,7 +21,7 @@
             var fakeDbStatement = A.Fake<IDbStatement>();
             A.CallTo(() => fakeSqlDialect.BuildStatement(
                 A<TransactionScope>.Ignored,
-                A<IDbConnection>.Ignored,
+                A<IDbConnectionAsync>.Ignored,
                 A<IDbTransaction>.Ignored))
                 .Returns(fakeDbStatement);
             A.CallTo(() => fakeDbStatement.ExecuteScalar(A<string>.Ignored)).Returns(1);

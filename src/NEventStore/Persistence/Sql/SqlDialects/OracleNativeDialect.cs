@@ -3,13 +3,14 @@ namespace NEventStore.Persistence.Sql.SqlDialects
     using System;
     using System.Data;
     using System.Reflection;
+    using System.Threading.Tasks;
     using System.Transactions;
     using NEventStore.Persistence.Sql;
 
     public class OracleNativeDialect : CommonSqlDialect
     {
         private const int UniqueKeyViolation = -2146232008;
-        Action<IConnectionFactory, IDbConnection, IDbStatement, byte[]> _addPayloadParamater;
+        Func<IConnectionFactory, IDbConnection, IDbStatement, byte[], Task> _addPayloadParamater;
 
         public override string AppendSnapshotToCommit
         {
@@ -131,7 +132,7 @@ namespace NEventStore.Persistence.Sql.SqlDialects
             get { return MakeOracleParameter(base.MaxStreamRevision); }
         }
 
-        public override IDbStatement BuildStatement(TransactionScope scope, IDbConnection connection, IDbTransaction transaction)
+        public override IDbStatement BuildStatement(TransactionScope scope, IDbConnectionAsync connection, IDbTransaction transaction)
         {
             return new OracleDbStatement(this, scope, connection, transaction);
         }
@@ -165,7 +166,7 @@ namespace NEventStore.Persistence.Sql.SqlDialects
             get { return (q, r) => { } ; }
         }
 
-        public override void AddPayloadParamater(IConnectionFactory connectionFactory, IDbConnection connection, IDbStatement cmd, byte[] payload)
+        public override Task AddPayloadParamater(IConnectionFactory connectionFactory, IDbConnection connection, IDbStatement cmd, byte[] payload)
         {
             if (_addPayloadParamater == null)
             {
@@ -186,27 +187,27 @@ namespace NEventStore.Persistence.Sql.SqlDialects
                         => base.AddPayloadParamater(connectionFactory2, connection2, cmd2, payload2);
                 }
             }
-            _addPayloadParamater(connectionFactory, connection, cmd, payload);
+            return _addPayloadParamater(connectionFactory, connection, cmd, payload);
         }
 
-        private Action<IConnectionFactory, IDbConnection, IDbStatement, byte[]> CreateOraAddPayloadAction(
+        private Func<IConnectionFactory, IDbConnection, IDbStatement, byte[], Task> CreateOraAddPayloadAction(
             string assemblyName)
         {
             Assembly assembly = Assembly.Load(assemblyName);
             var oracleParamaterType = assembly.GetType(assemblyName + ".Client.OracleParameter", true);
             var oracleParamaterValueProperty = oracleParamaterType.GetProperty("Value");
             var oracleBlobType = assembly.GetType(assemblyName + ".Types.OracleBlob", true);
-            var oracleBlobWriteMethod = oracleBlobType.GetMethod("Write", new []{ typeof(Byte[]), typeof(int), typeof(int)});
+            var oracleBlobWriteMethod = oracleBlobType.GetMethod("WriteAsync", new []{ typeof(Byte[]), typeof(int), typeof(int)});
             Type oracleParamapterType = assembly.GetType(assemblyName + ".Client.OracleDbType", true);
             FieldInfo blobField = oracleParamapterType.GetField("Blob");
             var blobDbType = blobField.GetValue(null);
 
-            return (_, connection2, cmd2, payload2) =>
+            return async (_, connection2, cmd2, payload2) =>
             {
                 object payloadParam = Activator.CreateInstance(oracleParamaterType, new[] { Payload, blobDbType });
                 ((OracleDbStatement)cmd2).AddParameter(Payload, payloadParam);
-                object oracleBlob = Activator.CreateInstance(oracleBlobType, new object[] { connection2 });
-                oracleBlobWriteMethod.Invoke(oracleBlob, new object[] { payload2, 0, payload2.Length });
+                object oracleBlob = Activator.CreateInstance(oracleBlobType, new[] { ((DbConnectionAsync)connection2).Connection });
+                await (Task)oracleBlobWriteMethod.Invoke(oracleBlob, new object[] { payload2, 0, payload2.Length });
                 oracleParamaterValueProperty.SetValue(payloadParam, oracleBlob, null);
             };
         }

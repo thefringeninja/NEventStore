@@ -294,4 +294,7 @@
   <data name="StreamIdIsNullEmptyOrWhiteSpace" xml:space="preserve">
     <value>streamId is null, empty, or whitespace.</value>
   </data>
+  <data name="DbConnectionIsIncorrectType" xml:space="preserve">
+    <value>IDbConnection must be of type DbConnection.</value>
+  </data>
 </root>

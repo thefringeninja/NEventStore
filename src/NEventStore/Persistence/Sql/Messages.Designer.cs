@@ -214,6 +214,15 @@ namespace NEventStore.Persistence.Sql {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to IDbConnection must be of type DbConnection..
+        /// </summary>
+        internal static string DbConnectionIsIncorrectType {
+            get {
+                return ResourceManager.GetString("DbConnectionIsIncorrectType", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Deleting stream &apos;{0}&apos; from bucket &apos;{1}&apos;..
         /// </summary>
         internal static string DeletingStream {

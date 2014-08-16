@@ -11,7 +11,11 @@ namespace NEventStore.Persistence.Sql.SqlDialects
     {
         private readonly ISqlDialect _dialect;
 
-        public OracleDbStatement(ISqlDialect dialect, TransactionScope scope, IDbConnection connection, IDbTransaction transaction)
+        public OracleDbStatement(
+            ISqlDialect dialect,
+            TransactionScope scope,
+            IDbConnectionAsync connection,
+            IDbTransaction transaction)
             : base(dialect, scope, connection, transaction)
         {
             _dialect = dialect;

@@ -130,9 +130,12 @@
     <Compile Include="Persistence\PipelineHooksAwarePersistanceDecorator.cs" />
     <Compile Include="Persistence\Sql\CommitExtensions.cs" />
     <Compile Include="Persistence\Sql\ConfigurationConnectionFactory.cs" />
+    <Compile Include="Persistence\Sql\DbConnectionAsync.cs" />
     <Compile Include="Persistence\Sql\DelegateStreamIdHasher.cs" />
     <Compile Include="Persistence\Sql\ExtensionMethods.cs" />
     <Compile Include="Persistence\Sql\IConnectionFactory.cs" />
+    <Compile Include="Persistence\Sql\IDbCommandAsync.cs" />
+    <Compile Include="Persistence\Sql\IDbConnectionAsync.cs" />
     <Compile Include="Persistence\Sql\IDbStatement.cs" />
     <Compile Include="Persistence\Sql\ISqlDialect.cs" />
     <Compile Include="Persistence\Sql\IStreamIdHasher.cs" />

@@ -2,6 +2,7 @@ namespace NEventStore.Persistence.Sql.SqlDialects
 {
     using System;
     using System.Data;
+    using System.Threading.Tasks;
     using System.Transactions;
     using NEventStore.Persistence.Sql;
 
@@ -152,9 +153,10 @@ namespace NEventStore.Persistence.Sql.SqlDialects
             return message.Contains("DUPLICATE") || message.Contains("UNIQUE") || message.Contains("CONSTRAINT");
         }
 
-        public virtual void AddPayloadParamater(IConnectionFactory connectionFactory, IDbConnection connection, IDbStatement cmd, byte[] payload)
+        public virtual Task AddPayloadParamater(IConnectionFactory connectionFactory, IDbConnection connection, IDbStatement cmd, byte[] payload)
         {
             cmd.AddParameter(Payload, payload);
+            return Task.FromResult(0);
         }
 
         public virtual DateTime ToDateTime(object value)
@@ -174,7 +176,7 @@ namespace NEventStore.Persistence.Sql.SqlDialects
         }
 
         public virtual IDbStatement BuildStatement(
-            TransactionScope scope, IDbConnection connection, IDbTransaction transaction)
+            TransactionScope scope, IDbConnectionAsync connection, IDbTransaction transaction)
         {
             return new CommonDbStatement(this, scope, connection, transaction);
         }
