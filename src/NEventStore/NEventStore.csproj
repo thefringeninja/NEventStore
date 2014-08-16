@@ -236,6 +236,7 @@
     <Compile Include="Persistence\StreamHead.cs" />
     <Compile Include="Snapshot.cs" />
     <Compile Include="SystemTime.cs" />
+    <Compile Include="TaskExtensions.cs" />
     <Compile Include="Wireup.cs" />
   </ItemGroup>
   <ItemGroup>
