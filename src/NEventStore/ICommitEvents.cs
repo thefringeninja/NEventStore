@@ -1,6 +1,7 @@
 namespace NEventStore
 {
     using System.Collections.Generic;
+    using System.Threading.Tasks;
     using NEventStore.Persistence;
 
     /// <summary>
@@ -32,5 +33,7 @@ namespace NEventStore
         /// <exception cref="StorageException" />
         /// <exception cref="StorageUnavailableException" />
         ICommit Commit(CommitAttempt attempt);
+
+        Task<ICommit> CommitAsync(CommitAttempt attempt);
     }
 }

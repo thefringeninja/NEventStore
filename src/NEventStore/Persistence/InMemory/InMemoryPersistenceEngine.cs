@@ -5,6 +5,7 @@ namespace NEventStore.Persistence.InMemory
     using System.Collections.Generic;
     using System.Linq;
     using System.Threading;
+    using System.Threading.Tasks;
     using NEventStore.Logging;
 
     public class InMemoryPersistenceEngine : IPersistStreams
@@ -60,6 +61,13 @@ namespace NEventStore.Persistence.InMemory
             ThrowWhenDisposed();
             Logger.Debug(Resources.AttemptingToCommit, attempt.CommitId, attempt.StreamId, attempt.CommitSequence);
             return this[attempt.BucketId].Commit(attempt, new LongCheckpoint(Interlocked.Increment(ref _checkpoint)));
+        }
+
+        public Task<ICommit> CommitAsync(CommitAttempt attempt)
+        {
+            ThrowWhenDisposed();
+            Logger.Debug(Resources.AttemptingToCommit, attempt.CommitId, attempt.StreamId, attempt.CommitSequence);
+            return Task.FromResult(this[attempt.BucketId].Commit(attempt, new LongCheckpoint(Interlocked.Increment(ref _checkpoint))));
         }
 
         public IEnumerable<IStreamHead> GetStreamsToSnapshot(string bucketId, int maxThreshold)

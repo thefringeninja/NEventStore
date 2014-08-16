@@ -4,6 +4,7 @@ namespace NEventStore.Persistence.Sql.SqlDialects
     using System.Collections.Generic;
     using System.Data;
     using System.Data.Common;
+    using System.Threading.Tasks;
     using System.Transactions;
     using NEventStore.Logging;
     using NEventStore.Persistence.Sql;
@@ -104,6 +105,25 @@ namespace NEventStore.Persistence.Sql.SqlDialects
             }
         }
 
+        public Task<object> ExecuteScalarAsync(string commandText)
+        {
+            try
+            {
+                using (var command = BuildCommand(commandText))
+                {
+                    return command.ExecuteScalarAsync();
+                }
+            }
+            catch (Exception e)
+            {
+                if (_dialect.IsDuplicate(e))
+                {
+                    throw new UniqueKeyViolationException(e.Message, e);
+                }
+                throw;
+            }
+        }
+
         public virtual IEnumerable<IDataRecord> ExecuteWithQuery(string queryText)
         {
             return ExecuteQuery(queryText, (query, latest) => { }, InfinitePageSize);
@@ -157,11 +177,11 @@ namespace NEventStore.Persistence.Sql.SqlDialects
             }
         }
 
-        protected virtual IDbCommand BuildCommand(string statement)
+        protected virtual DbCommand BuildCommand(string statement)
         {
             Logger.Verbose(Messages.CreatingCommand);
-            IDbCommand command = _connection.CreateCommand();
-            command.Transaction = _transaction;
+            DbCommand command = _connection.CreateCommand();
+            ((IDbCommand)command).Transaction = _transaction;
             command.CommandText = statement;
 
             Logger.Verbose(Messages.ClientControlledTransaction, _transaction != null);

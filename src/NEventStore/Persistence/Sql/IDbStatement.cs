@@ -3,6 +3,7 @@ namespace NEventStore.Persistence.Sql
     using System;
     using System.Collections.Generic;
     using System.Data;
+    using System.Threading.Tasks;
     using NEventStore.Persistence.Sql.SqlDialects;
 
     public interface IDbStatement : IDisposable
@@ -16,6 +17,8 @@ namespace NEventStore.Persistence.Sql
         int ExecuteWithoutExceptions(string commandText);
 
         object ExecuteScalar(string commandText);
+
+        Task<object> ExecuteScalarAsync(string commandText);
 
         IEnumerable<IDataRecord> ExecuteWithQuery(string queryText);
 

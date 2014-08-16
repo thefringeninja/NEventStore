@@ -3,6 +3,7 @@ namespace NEventStore.Diagnostics
     using System;
     using System.Collections.Generic;
     using System.Diagnostics;
+    using System.Threading.Tasks;
     using NEventStore.Persistence;
 
     public class PerformanceCounterPersistenceEngine : IPersistStreams
@@ -25,6 +26,15 @@ namespace NEventStore.Diagnostics
         {
             Stopwatch clock = Stopwatch.StartNew();
             ICommit commit = _persistence.Commit(attempt);
+            clock.Stop();
+            _counters.CountCommit(attempt.Events.Count, clock.ElapsedMilliseconds);
+            return commit;
+        }
+
+        public async Task<ICommit> CommitAsync(CommitAttempt attempt)
+        {
+            Stopwatch clock = Stopwatch.StartNew();
+            ICommit commit = await _persistence.CommitAsync(attempt).NotOnCapturedContext();
             clock.Stop();
             _counters.CountCommit(attempt.Events.Count, clock.ElapsedMilliseconds);
             return commit;

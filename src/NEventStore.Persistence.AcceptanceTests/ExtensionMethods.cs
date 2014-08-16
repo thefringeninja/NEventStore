@@ -11,11 +11,6 @@ namespace NEventStore.Persistence.AcceptanceTests
             return new HashSet<T>(collection);
         }
 
-        public static LinkedList<T> ToLinkedList<T>(this IEnumerable<T> collection)
-        {
-            return new LinkedList<T>(collection);
-        }
-
         public static ICommit CommitSingle(this IPersistStreams persistence, string streamId = null)
         {
             CommitAttempt commitAttempt = (streamId ?? Guid.NewGuid().ToString()).BuildAttempt();
@@ -23,12 +18,6 @@ namespace NEventStore.Persistence.AcceptanceTests
         }
 
         public static ICommit CommitNext(this IPersistStreams persistence, ICommit previous)
-        {
-            var nextAttempt = previous.BuildNextAttempt();
-            return persistence.Commit(nextAttempt);
-        }
-
-        public static ICommit CommitNext(this IPersistStreams persistence, CommitAttempt previous)
         {
             var nextAttempt = previous.BuildNextAttempt();
             return persistence.Commit(nextAttempt);

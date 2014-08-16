@@ -3,6 +3,7 @@ namespace NEventStore.Persistence
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Threading.Tasks;
     using NEventStore.Logging;
 
     public class PipelineHooksAwarePersistanceDecorator : IPersistStreams
@@ -38,6 +39,11 @@ namespace NEventStore.Persistence
         public ICommit Commit(CommitAttempt attempt)
         {
             return _original.Commit(attempt);
+        }
+
+        public Task<ICommit> CommitAsync(CommitAttempt attempt)
+        {
+            return _original.CommitAsync(attempt);
         }
 
         public ISnapshot GetSnapshot(string bucketId, string streamId, int maxRevision)

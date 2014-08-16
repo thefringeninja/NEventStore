@@ -2,6 +2,7 @@ namespace NEventStore
 {
     using System;
     using System.Collections.Generic;
+    using System.Threading.Tasks;
     using NEventStore.Logging;
     using NEventStore.Persistence;
 
@@ -44,6 +45,32 @@ namespace NEventStore
 
             Logger.Info(Resources.CommittingAttempt, attempt.CommitId, attempt.Events.Count);
             ICommit commit = _persistence.Commit(attempt);
+
+            foreach (var hook in _pipelineHooks)
+            {
+                Logger.Debug(Resources.InvokingPostCommitPipelineHooks, attempt.CommitId, hook.GetType());
+                hook.PostCommit(commit);
+            }
+            return commit;
+        }
+
+        public virtual async Task<ICommit> CommitAsync(CommitAttempt attempt)
+        {
+            Guard.NotNull(() => attempt, attempt);
+            foreach (var hook in _pipelineHooks)
+            {
+                Logger.Debug(Resources.InvokingPreCommitHooks, attempt.CommitId, hook.GetType());
+                if (hook.PreCommit(attempt))
+                {
+                    continue;
+                }
+
+                Logger.Info(Resources.CommitRejectedByPipelineHook, hook.GetType(), attempt.CommitId);
+                return null;
+            }
+
+            Logger.Info(Resources.CommittingAttempt, attempt.CommitId, attempt.Events.Count);
+            ICommit commit = await _persistence.CommitAsync(attempt).NotOnCapturedContext();
 
             foreach (var hook in _pipelineHooks)
             {

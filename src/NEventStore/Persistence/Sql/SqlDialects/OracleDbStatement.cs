@@ -39,8 +39,10 @@ namespace NEventStore.Persistence.Sql.SqlDialects
         {
             try
             {
-                using (IDbCommand command = BuildCommand(commandText))
+                using (var command = BuildCommand(commandText))
+                { 
                     return command.ExecuteNonQuery();
+                }
             }
             catch (Exception e)
             {
@@ -53,9 +55,9 @@ namespace NEventStore.Persistence.Sql.SqlDialects
             }
         }
 
-        protected override IDbCommand BuildCommand(string statement)
+        protected override DbCommand BuildCommand(string statement)
         {
-            IDbCommand command = base.BuildCommand(statement);
+            DbCommand command = base.BuildCommand(statement);
             PropertyInfo pi = command.GetType().GetProperty("BindByName");
             if (pi != null)
             {
