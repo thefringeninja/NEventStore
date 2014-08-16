@@ -56,7 +56,7 @@ namespace NEventStore.Persistence.Sql
         {
             ConnectionStringSettings setting = GetSetting(connectionName);
             string connectionString = setting.ConnectionString;
-            return new ConnectionScope(connectionString, () => Open(connectionString, setting));
+            return Open(connectionString, setting);
         }
 
         protected virtual IDbConnection Open(string connectionString, ConnectionStringSettings setting)

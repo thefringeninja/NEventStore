@@ -3,6 +3,7 @@ namespace NEventStore.Persistence.Sql.SqlDialects
     using System;
     using System.Collections.Generic;
     using System.Data;
+    using System.Data.Common;
     using System.Transactions;
     using NEventStore.Logging;
     using NEventStore.Persistence.Sql;
@@ -159,6 +160,7 @@ namespace NEventStore.Persistence.Sql.SqlDialects
         protected virtual IDbCommand BuildCommand(string statement)
         {
             Logger.Verbose(Messages.CreatingCommand);
+            var con = (DbConnection) _connection;
             IDbCommand command = _connection.CreateCommand();
             command.Transaction = _transaction;
             command.CommandText = statement;

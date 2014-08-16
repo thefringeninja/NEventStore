@@ -19,7 +19,7 @@ namespace NEventStore.Persistence.AcceptanceTests
 
         public IDbConnection Open()
         {
-            return new ConnectionScope("master", OpenInternal);
+            return OpenInternal();
         }
 
         public Type GetDbProviderFactoryType()

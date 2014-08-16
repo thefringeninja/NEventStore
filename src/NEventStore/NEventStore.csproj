@@ -130,7 +130,6 @@
     <Compile Include="Persistence\PipelineHooksAwarePersistanceDecorator.cs" />
     <Compile Include="Persistence\Sql\CommitExtensions.cs" />
     <Compile Include="Persistence\Sql\ConfigurationConnectionFactory.cs" />
-    <Compile Include="Persistence\Sql\ConnectionScope.cs" />
     <Compile Include="Persistence\Sql\DelegateStreamIdHasher.cs" />
     <Compile Include="Persistence\Sql\ExtensionMethods.cs" />
     <Compile Include="Persistence\Sql\IConnectionFactory.cs" />
@@ -188,7 +187,6 @@
     <Compile Include="Persistence\Sql\SqlPersistenceEngine.cs" />
     <Compile Include="Persistence\Sql\SqlPersistenceFactory.cs" />
     <Compile Include="Persistence\Sql\StreamHeadExtensions.cs" />
-    <Compile Include="Persistence\Sql\ThreadScope.cs" />
     <Compile Include="Persistence\Sql\UniqueKeyViolationException.cs" />
     <Compile Include="Persistence\StorageUnavailableException.cs" />
     <Compile Include="Persistence\StreamHeadEqualityComparer.cs" />

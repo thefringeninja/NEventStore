@@ -205,8 +205,7 @@ namespace NEventStore.Persistence.Sql.SqlDialects
             {
                 object payloadParam = Activator.CreateInstance(oracleParamaterType, new[] { Payload, blobDbType });
                 ((OracleDbStatement)cmd2).AddParameter(Payload, payloadParam);
-                object oracleConnection = ((ConnectionScope)connection2).Current;
-                object oracleBlob = Activator.CreateInstance(oracleBlobType, new[] { oracleConnection });
+                object oracleBlob = Activator.CreateInstance(oracleBlobType, new object[] { connection2 });
                 oracleBlobWriteMethod.Invoke(oracleBlob, new object[] { payload2, 0, payload2.Length });
                 oracleParamaterValueProperty.SetValue(payloadParam, oracleBlob, null);
             };
