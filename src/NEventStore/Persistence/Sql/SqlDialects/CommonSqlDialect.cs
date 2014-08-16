@@ -2,6 +2,7 @@ namespace NEventStore.Persistence.Sql.SqlDialects
 {
     using System;
     using System.Data;
+    using System.Data.Common;
     using System.Threading.Tasks;
     using System.Transactions;
     using NEventStore.Persistence.Sql;
@@ -153,7 +154,7 @@ namespace NEventStore.Persistence.Sql.SqlDialects
             return message.Contains("DUPLICATE") || message.Contains("UNIQUE") || message.Contains("CONSTRAINT");
         }
 
-        public virtual Task AddPayloadParamater(IConnectionFactory connectionFactory, IDbConnection connection, IDbStatement cmd, byte[] payload)
+        public virtual Task AddPayloadParamater(IConnectionFactory connectionFactory, DbConnection connection, IDbStatement cmd, byte[] payload)
         {
             cmd.AddParameter(Payload, payload);
             return Task.FromResult(0);
@@ -175,8 +176,7 @@ namespace NEventStore.Persistence.Sql.SqlDialects
             return null;
         }
 
-        public virtual IDbStatement BuildStatement(
-            TransactionScope scope, IDbConnectionAsync connection, IDbTransaction transaction)
+        public virtual IDbStatement BuildStatement(TransactionScope scope, DbConnection connection, IDbTransaction transaction)
         {
             return new CommonDbStatement(this, scope, connection, transaction);
         }

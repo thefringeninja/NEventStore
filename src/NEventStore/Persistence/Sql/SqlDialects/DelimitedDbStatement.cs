@@ -3,6 +3,7 @@ namespace NEventStore.Persistence.Sql.SqlDialects
     using System;
     using System.Collections.Generic;
     using System.Data;
+    using System.Data.Common;
     using System.Linq;
     using System.Transactions;
     using NEventStore.Persistence.Sql;
@@ -14,7 +15,7 @@ namespace NEventStore.Persistence.Sql.SqlDialects
         public DelimitedDbStatement(
             ISqlDialect dialect,
             TransactionScope scope,
-            IDbConnectionAsync connection,
+            DbConnection connection,
             IDbTransaction transaction)
             : base(dialect, scope, connection, transaction)
         {}

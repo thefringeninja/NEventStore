@@ -36,7 +36,7 @@ namespace NEventStore.Persistence.Sql
             get { return GetConnectionStringSettings(_connectionName); }
         }
 
-        public virtual Task<IDbConnectionAsync> Open()
+        public virtual Task<DbConnection> Open()
         {
             Logger.Verbose(Messages.OpeningMasterConnection, _connectionName);
             return Open(_connectionName);
@@ -48,14 +48,14 @@ namespace NEventStore.Persistence.Sql
             return factory.GetType();
         }
 
-        protected virtual Task<IDbConnectionAsync> Open(string connectionName)
+        protected virtual Task<DbConnection> Open(string connectionName)
         {
             ConnectionStringSettings setting = GetSetting(connectionName);
             string connectionString = setting.ConnectionString;
             return Open(connectionString, setting);
         }
 
-        protected virtual async Task<IDbConnectionAsync> Open(string connectionString, ConnectionStringSettings setting)
+        protected virtual async Task<DbConnection> Open(string connectionString, ConnectionStringSettings setting)
         {
             DbProviderFactory factory = GetFactory(setting);
             DbConnection connection = factory.CreateConnection();
@@ -77,7 +77,7 @@ namespace NEventStore.Persistence.Sql
                 throw new StorageUnavailableException(e.Message, e);
             }
 
-            return new DbConnectionAsync(connection);
+            return connection;
         }
 
         protected virtual ConnectionStringSettings GetSetting(string connectionName)

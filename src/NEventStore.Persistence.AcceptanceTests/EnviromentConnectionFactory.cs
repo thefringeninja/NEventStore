@@ -17,7 +17,7 @@ namespace NEventStore.Persistence.AcceptanceTests
             _dbProviderFactory = DbProviderFactories.GetFactory(providerInvariantName);
         }
 
-        public async Task<IDbConnectionAsync> Open()
+        public async Task<DbConnection> Open()
         {
             string connectionString = Environment.GetEnvironmentVariable(_envVarKey, EnvironmentVariableTarget.Process);
             if (connectionString == null)
@@ -42,7 +42,7 @@ namespace NEventStore.Persistence.AcceptanceTests
             {
                 throw new StorageUnavailableException(e.Message, e);
             }
-            return new DbConnectionAsync(connection);
+            return connection;
         }
 
         public Type GetDbProviderFactoryType()

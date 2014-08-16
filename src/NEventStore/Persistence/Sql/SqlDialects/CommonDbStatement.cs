@@ -3,6 +3,7 @@ namespace NEventStore.Persistence.Sql.SqlDialects
     using System;
     using System.Collections.Generic;
     using System.Data;
+    using System.Data.Common;
     using System.Transactions;
     using NEventStore.Logging;
     using NEventStore.Persistence.Sql;
@@ -11,7 +12,7 @@ namespace NEventStore.Persistence.Sql.SqlDialects
     {
         private const int InfinitePageSize = 0;
         private static readonly ILog Logger = LogFactory.BuildLogger(typeof (CommonDbStatement));
-        private readonly IDbConnectionAsync _connection;
+        private readonly DbConnection _connection;
         private readonly ISqlDialect _dialect;
         private readonly TransactionScope _scope;
         private readonly IDbTransaction _transaction;
@@ -19,7 +20,7 @@ namespace NEventStore.Persistence.Sql.SqlDialects
         public CommonDbStatement(
             ISqlDialect dialect,
             TransactionScope scope,
-            IDbConnectionAsync connection,
+            DbConnection connection,
             IDbTransaction transaction)
         {
             Parameters = new Dictionary<string, Tuple<object, DbType?>>();

@@ -14,7 +14,7 @@ namespace NEventStore.Persistence.Sql.SqlDialects
         public OracleDbStatement(
             ISqlDialect dialect,
             TransactionScope scope,
-            IDbConnectionAsync connection,
+            DbConnection connection,
             IDbTransaction transaction)
             : base(dialect, scope, connection, transaction)
         {

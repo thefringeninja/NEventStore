@@ -2,6 +2,7 @@ namespace NEventStore.Persistence.Sql
 {
     using System;
     using System.Data;
+    using System.Data.Common;
     using System.Threading.Tasks;
     using System.Transactions;
     using NEventStore.Persistence.Sql.SqlDialects;
@@ -47,11 +48,11 @@ namespace NEventStore.Persistence.Sql
 
         IDbTransaction OpenTransaction(IDbConnection connection);
 
-        IDbStatement BuildStatement(TransactionScope scope, IDbConnectionAsync connection, IDbTransaction transaction);
+        IDbStatement BuildStatement(TransactionScope scope, DbConnection connection, IDbTransaction transaction);
 
         bool IsDuplicate(Exception exception);
 
-        Task AddPayloadParamater(IConnectionFactory connectionFactory, IDbConnection connection, IDbStatement cmd, byte[] payload);
+        Task AddPayloadParamater(IConnectionFactory connectionFactory, DbConnection connection, IDbStatement cmd, byte[] payload);
 
         DateTime ToDateTime(object value);
 

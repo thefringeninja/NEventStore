@@ -3,6 +3,7 @@ namespace NEventStore.Persistence.Sql
     using System;
     using System.Collections.Generic;
     using System.Data;
+    using System.Data.Common;
     using System.Globalization;
     using System.Linq;
     using System.Threading;
@@ -305,7 +306,7 @@ namespace NEventStore.Persistence.Sql
             ThrowWhenDisposed();
 
             TransactionScope scope = OpenQueryScope();
-            IDbConnectionAsync connection = null;
+            DbConnection connection = null;
             IDbTransaction transaction = null;
             IDbStatement statement = null;
 
@@ -369,12 +370,12 @@ namespace NEventStore.Persistence.Sql
             return ExecuteCommand((_, statement) => command(statement));
         }
 
-        protected virtual T ExecuteCommand<T>(Func<IDbConnection, IDbStatement, T> command)
+        private T ExecuteCommand<T>(Func<DbConnection, IDbStatement, T> command)
         {
             ThrowWhenDisposed();
 
             using (TransactionScope scope = OpenCommandScope())
-            using (IDbConnectionAsync connection = _connectionFactory.Open().Result)
+            using (DbConnection connection = _connectionFactory.Open().Result)
             using (IDbTransaction transaction = _dialect.OpenTransaction(connection))
             using (IDbStatement statement = _dialect.BuildStatement(scope, connection, transaction))
             {

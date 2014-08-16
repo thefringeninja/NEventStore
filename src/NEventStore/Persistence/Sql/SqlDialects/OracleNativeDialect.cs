@@ -2,6 +2,7 @@ namespace NEventStore.Persistence.Sql.SqlDialects
 {
     using System;
     using System.Data;
+    using System.Data.Common;
     using System.Reflection;
     using System.Threading.Tasks;
     using System.Transactions;
@@ -10,7 +11,7 @@ namespace NEventStore.Persistence.Sql.SqlDialects
     public class OracleNativeDialect : CommonSqlDialect
     {
         private const int UniqueKeyViolation = -2146232008;
-        Func<IConnectionFactory, IDbConnection, IDbStatement, byte[], Task> _addPayloadParamater;
+        Func<IConnectionFactory, DbConnection, IDbStatement, byte[], Task> _addPayloadParamater;
 
         public override string AppendSnapshotToCommit
         {
@@ -132,7 +133,7 @@ namespace NEventStore.Persistence.Sql.SqlDialects
             get { return MakeOracleParameter(base.MaxStreamRevision); }
         }
 
-        public override IDbStatement BuildStatement(TransactionScope scope, IDbConnectionAsync connection, IDbTransaction transaction)
+        public override IDbStatement BuildStatement(TransactionScope scope, DbConnection connection, IDbTransaction transaction)
         {
             return new OracleDbStatement(this, scope, connection, transaction);
         }
@@ -166,7 +167,7 @@ namespace NEventStore.Persistence.Sql.SqlDialects
             get { return (q, r) => { } ; }
         }
 
-        public override Task AddPayloadParamater(IConnectionFactory connectionFactory, IDbConnection connection, IDbStatement cmd, byte[] payload)
+        public override Task AddPayloadParamater(IConnectionFactory connectionFactory, DbConnection connection, IDbStatement cmd, byte[] payload)
         {
             if (_addPayloadParamater == null)
             {
@@ -206,7 +207,7 @@ namespace NEventStore.Persistence.Sql.SqlDialects
             {
                 object payloadParam = Activator.CreateInstance(oracleParamaterType, new[] { Payload, blobDbType });
                 ((OracleDbStatement)cmd2).AddParameter(Payload, payloadParam);
-                object oracleBlob = Activator.CreateInstance(oracleBlobType, new[] { ((DbConnectionAsync)connection2).Connection });
+                object oracleBlob = Activator.CreateInstance(oracleBlobType, new[] { connection2 });
                 await (Task)oracleBlobWriteMethod.Invoke(oracleBlob, new object[] { payload2, 0, payload2.Length });
                 oracleParamaterValueProperty.SetValue(payloadParam, oracleBlob, null);
             };

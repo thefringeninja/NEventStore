@@ -2,6 +2,7 @@
 {
     using System;
     using System.Data;
+    using System.Data.Common;
     using System.Transactions;
     using FakeItEasy;
     using FluentAssertions;
@@ -21,7 +22,7 @@
             var fakeDbStatement = A.Fake<IDbStatement>();
             A.CallTo(() => fakeSqlDialect.BuildStatement(
                 A<TransactionScope>.Ignored,
-                A<IDbConnectionAsync>.Ignored,
+                A<DbConnection>.Ignored,
                 A<IDbTransaction>.Ignored))
                 .Returns(fakeDbStatement);
             A.CallTo(() => fakeDbStatement.ExecuteScalar(A<string>.Ignored)).Returns(1);
