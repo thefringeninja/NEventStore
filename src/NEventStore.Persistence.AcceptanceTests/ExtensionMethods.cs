@@ -18,10 +18,10 @@ namespace NEventStore.Persistence.AcceptanceTests
             return persistence.CommitAsync(commitAttempt);
         }
 
-        public static ICommit CommitNext(this IPersistStreams persistence, ICommit previous)
+        public static Task<ICommit> CommitNext(this IPersistStreams persistence, ICommit previous)
         {
             var nextAttempt = previous.BuildNextAttempt();
-            return persistence.Commit(nextAttempt);
+            return persistence.CommitAsync(nextAttempt);
         }
 
         public static IEnumerable<CommitAttempt> CommitMany(this IPersistStreams persistence, int numberOfCommits, string streamId = null)

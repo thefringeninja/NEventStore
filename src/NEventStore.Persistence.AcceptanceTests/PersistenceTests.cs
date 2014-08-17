@@ -128,9 +128,9 @@ namespace NEventStore.Persistence.AcceptanceTests
         protected override async Task ContextAsync()
         {
             _oldest = await Persistence.CommitSingle(); // 2 events, revision 1-2
-            _oldest2 = Persistence.CommitNext(_oldest); // 2 events, revision 3-4
-            _oldest3 = Persistence.CommitNext(_oldest2); // 2 events, revision 5-6
-            Persistence.CommitNext(_oldest3); // 2 events, revision 7-8
+            _oldest2 = await Persistence.CommitNext(_oldest); // 2 events, revision 3-4
+            _oldest3 = await Persistence.CommitNext(_oldest2); // 2 events, revision 5-6
+            await Persistence.CommitNext(_oldest3); // 2 events, revision 7-8
 
             _streamId = _oldest.StreamId;
         }
@@ -164,9 +164,9 @@ namespace NEventStore.Persistence.AcceptanceTests
         protected override async Task ContextAsync()
         {
             _oldest = await Persistence.CommitSingle(); // 2 events, revision 1-2
-            _oldest2 = Persistence.CommitNext(_oldest); // 2 events, revision 3-4
-            _oldest3 = Persistence.CommitNext(_oldest2); // 2 events, revision 5-6
-            Persistence.CommitNext(_oldest3); // 2 events, revision 7-8
+            _oldest2 = await Persistence.CommitNext(_oldest); // 2 events, revision 3-4
+            _oldest3 = await Persistence.CommitNext(_oldest2); // 2 events, revision 5-6
+            await Persistence.CommitNext(_oldest3); // 2 events, revision 7-8
 
             _streamId = _oldest.StreamId;
         }
@@ -383,8 +383,8 @@ namespace NEventStore.Persistence.AcceptanceTests
         {
             _streamId = Guid.NewGuid().ToString();
             ICommit commit1 = await Persistence.CommitSingle(_streamId); // rev 1-2
-            ICommit commit2 = Persistence.CommitNext(commit1); // rev 3-4
-            Persistence.CommitNext(commit2); // rev 5-6
+            ICommit commit2 = await Persistence.CommitNext(commit1); // rev 3-4
+            await Persistence.CommitNext(commit2); // rev 5-6
 
             Persistence.AddSnapshot(new Snapshot(_streamId, 1, string.Empty)); //Too far back
             Persistence.AddSnapshot(_correct = new Snapshot(_streamId, 3, "Snapshot"));
@@ -426,8 +426,8 @@ namespace NEventStore.Persistence.AcceptanceTests
         {
             _streamId = Guid.NewGuid().ToString();
             _oldest = await Persistence.CommitSingle(_streamId);
-            _oldest2 = Persistence.CommitNext(_oldest);
-            _newest = Persistence.CommitNext(_oldest2);
+            _oldest2 = await Persistence.CommitNext(_oldest);
+            _newest = await Persistence.CommitNext(_oldest2);
         }
 
         protected override void Because()
@@ -454,7 +454,7 @@ namespace NEventStore.Persistence.AcceptanceTests
         {
             _streamId = Guid.NewGuid().ToString();
             _oldest = await Persistence.CommitSingle(streamId: _streamId);
-            _oldest2 = Persistence.CommitNext(_oldest);
+            _oldest2 = await Persistence.CommitNext(_oldest);
             Persistence.AddSnapshot(new Snapshot(_streamId, _oldest2.StreamRevision, SnapshotData));
         }
 
