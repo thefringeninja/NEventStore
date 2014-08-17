@@ -1,5 +1,7 @@
 ﻿namespace NEventStore.Persistence.AcceptanceTests.BDD
 {
+    using System;
+    using System.Runtime.ExceptionServices;
     using System.Threading.Tasks;
     using Xunit;
 
@@ -8,7 +10,7 @@
     {
         protected virtual void Because()
         {
-            BecauseAsync().Wait();
+            CatchAndThrow(BecauseAsync);
         }
 
         protected virtual Task BecauseAsync()
@@ -18,7 +20,7 @@
 
         protected virtual void Cleanup()
         {
-            CleanupAsync().Wait();
+            CatchAndThrow(CleanupAsync);
         }
 
         protected virtual Task CleanupAsync()
@@ -28,7 +30,7 @@
 
         protected virtual void Context()
         {
-            ContextAsync().Wait();
+            CatchAndThrow(ContextAsync);
         }
 
         protected virtual Task ContextAsync()
@@ -45,6 +47,18 @@
         {
             Context();
             Because();
+        }
+
+        private void CatchAndThrow(Func<Task> action)
+        {
+            try
+            {
+                action().Wait();
+            }
+            catch (AggregateException ex)
+            {
+                ExceptionDispatchInfo.Capture(ex.InnerException).Throw();
+            }
         }
     }
 }
