@@ -315,10 +315,10 @@ namespace NEventStore.Persistence.AcceptanceTests
         private ICommit[] _loaded;
         private string _streamId;
 
-        protected override void Context()
+        protected override async Task ContextAsync()
         {
             _streamId = Guid.NewGuid().ToString();
-            _committed = Persistence.CommitMany(ConfiguredPageSizeForTesting + 2, _streamId).ToArray();
+            _committed = (await Persistence.CommitMany(ConfiguredPageSizeForTesting + 2, streamId: _streamId)).ToArray();
         }
 
         protected override void Because()
@@ -453,7 +453,7 @@ namespace NEventStore.Persistence.AcceptanceTests
         protected override async Task ContextAsync()
         {
             _streamId = Guid.NewGuid().ToString();
-            _oldest = await Persistence.CommitSingle(streamId: _streamId);
+            _oldest = await Persistence.CommitSingle(_streamId);
             _oldest2 = await Persistence.CommitNext(_oldest);
             Persistence.AddSnapshot(new Snapshot(_streamId, _oldest2.StreamRevision, SnapshotData));
         }
@@ -485,9 +485,9 @@ namespace NEventStore.Persistence.AcceptanceTests
         private Guid _streamId;
         private const int checkPoint = 2;
 
-        protected override void Context()
+        protected override async Task ContextAsync()
         {
-            _committed = Persistence.CommitMany(ConfiguredPageSizeForTesting + 1).Select(c => c.CommitId).ToList();
+            _committed = (await Persistence.CommitMany(ConfiguredPageSizeForTesting + 1)).Select(c => c.CommitId).ToList();
         }
 
         protected override void Because()

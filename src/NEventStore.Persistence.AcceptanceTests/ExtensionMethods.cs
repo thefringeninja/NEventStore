@@ -24,7 +24,7 @@ namespace NEventStore.Persistence.AcceptanceTests
             return persistence.CommitAsync(nextAttempt);
         }
 
-        public static IEnumerable<CommitAttempt> CommitMany(this IPersistStreams persistence, int numberOfCommits, string streamId = null)
+        public static async Task<IEnumerable<CommitAttempt>> CommitMany(this IPersistStreams persistence, int numberOfCommits, string streamId = null)
         {
             var commits = new List<CommitAttempt>();
             CommitAttempt attempt = null;
@@ -32,7 +32,7 @@ namespace NEventStore.Persistence.AcceptanceTests
             for (int i = 0; i < numberOfCommits; i++)
             {
                 attempt = attempt == null ? (streamId ?? Guid.NewGuid().ToString()).BuildAttempt() : attempt.BuildNextAttempt();
-                persistence.Commit(attempt);
+                await persistence.CommitAsync(attempt);
                 commits.Add(attempt);
             }
 
