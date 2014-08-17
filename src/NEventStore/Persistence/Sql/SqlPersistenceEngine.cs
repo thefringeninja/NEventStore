@@ -488,7 +488,7 @@ namespace NEventStore.Persistence.Sql
                 try
                 {
                     Logger.Verbose(Messages.ExecutingCommand);
-                    T rowsAffected = await command(connection, statement);
+                    T rowsAffected = await command(connection, statement).NotOnCapturedContext();
                     Logger.Verbose(Messages.CommandExecuted, rowsAffected);
 
                     if (transaction != null)

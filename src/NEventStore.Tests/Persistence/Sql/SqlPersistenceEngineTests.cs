@@ -3,6 +3,7 @@
     using System;
     using System.Data;
     using System.Data.Common;
+    using System.Threading.Tasks;
     using System.Transactions;
     using FakeItEasy;
     using FluentAssertions;
@@ -25,14 +26,14 @@
                 A<DbConnection>.Ignored,
                 A<IDbTransaction>.Ignored))
                 .Returns(fakeDbStatement);
-            A.CallTo(() => fakeDbStatement.ExecuteScalar(A<string>.Ignored)).Returns(1);
+            A.CallTo(() => fakeDbStatement.ExecuteScalarAsync(A<string>.Ignored)).Returns(1);
             var fakeSerialize = A.Fake<ISerialize>();
             _sqlPersistenceEngine = new InheritedSqlPersistenceEngine(fakeConnectionFactory, fakeSqlDialect, fakeSerialize,TransactionScopeOption.Suppress, 128);
         }
 
-        protected override void Because()
+        protected override Task BecauseAsync()
         {
-            _sqlPersistenceEngine.Commit(
+            return _sqlPersistenceEngine.CommitAsync(
                 new CommitAttempt("streamid", 1, Guid.NewGuid(), 1, SystemTime.UtcNow, null, new[] {new EventMessage()}));
         }
 
