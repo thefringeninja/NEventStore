@@ -187,7 +187,7 @@ namespace NEventStore
             CommitAttempt attempt = BuildCommitAttempt(commitId);
 
             Logger.Debug(Resources.PersistingCommit, commitId, StreamId);
-            ICommit commit = await _persistence.CommitAsync(attempt);
+            ICommit commit = await _persistence.Commit(attempt).NotOnCapturedContext();
 
             PopulateStream(StreamRevision + 1, attempt.StreamRevision, new[] { commit });
             ClearChanges();

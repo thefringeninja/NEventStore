@@ -28,7 +28,7 @@ namespace NEventStore
             return _persistence.GetFrom(bucketId, streamId, minRevision, maxRevision);
         }
 
-        public virtual ICommit Commit(CommitAttempt attempt)
+        public virtual async Task<ICommit> Commit(CommitAttempt attempt)
         {
             Guard.NotNull(() => attempt, attempt);
             foreach (var hook in _pipelineHooks)
@@ -44,33 +44,7 @@ namespace NEventStore
             }
 
             Logger.Info(Resources.CommittingAttempt, attempt.CommitId, attempt.Events.Count);
-            ICommit commit = _persistence.Commit(attempt);
-
-            foreach (var hook in _pipelineHooks)
-            {
-                Logger.Debug(Resources.InvokingPostCommitPipelineHooks, attempt.CommitId, hook.GetType());
-                hook.PostCommit(commit);
-            }
-            return commit;
-        }
-
-        public virtual async Task<ICommit> CommitAsync(CommitAttempt attempt)
-        {
-            Guard.NotNull(() => attempt, attempt);
-            foreach (var hook in _pipelineHooks)
-            {
-                Logger.Debug(Resources.InvokingPreCommitHooks, attempt.CommitId, hook.GetType());
-                if (hook.PreCommit(attempt))
-                {
-                    continue;
-                }
-
-                Logger.Info(Resources.CommitRejectedByPipelineHook, hook.GetType(), attempt.CommitId);
-                return null;
-            }
-
-            Logger.Info(Resources.CommittingAttempt, attempt.CommitId, attempt.Events.Count);
-            ICommit commit = await _persistence.CommitAsync(attempt).NotOnCapturedContext();
+            ICommit commit = await _persistence.Commit(attempt).NotOnCapturedContext();
 
             foreach (var hook in _pipelineHooks)
             {

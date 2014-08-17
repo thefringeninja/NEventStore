@@ -17,7 +17,7 @@ namespace NEventStore.Persistence.AcceptanceTests
         private ICommit _persisted;
         private string _streamId;
 
-        protected override void Context()
+        protected override Task ContextAsync()
         {
             _streamId = Guid.NewGuid().ToString();
             var attempt = new CommitAttempt(_streamId,
@@ -27,7 +27,7 @@ namespace NEventStore.Persistence.AcceptanceTests
                 DateTime.Now,
                 new Dictionary<string, object> { { "key.1", "value" } },
                 new List<EventMessage> { new EventMessage { Body = new ExtensionMethods.SomeDomainEvent { SomeProperty = "Test" } } });
-            Persistence.Commit(attempt);
+            return Persistence.Commit(attempt);
         }
 
         protected override void Because()
@@ -49,13 +49,13 @@ namespace NEventStore.Persistence.AcceptanceTests
         private ICommit _persisted;
         private string _streamId;
 
-        protected override void Context()
+        protected override Task ContextAsync()
         {
             _now = SystemTime.UtcNow.AddYears(1);
             _streamId = Guid.NewGuid().ToString();
             _attempt = _streamId.BuildAttempt(_now);
 
-            Persistence.Commit(_attempt);
+            return Persistence.Commit(_attempt);
         }
 
         protected override void Because()
@@ -200,9 +200,9 @@ namespace NEventStore.Persistence.AcceptanceTests
             _attemptWithSameRevision = commit.StreamId.BuildAttempt();
         }
 
-        protected override void Because()
+        protected override async Task BecauseAsync()
         {
-            _thrown = Catch.Exception(() => Persistence.Commit(_attemptWithSameRevision));
+            _thrown = await Catch.Exception(() => Persistence.Commit(_attemptWithSameRevision));
         }
 
         [Fact]
@@ -219,7 +219,7 @@ namespace NEventStore.Persistence.AcceptanceTests
         private CommitAttempt _attempt1, _attempt2;
         private Exception _thrown;
 
-        protected override void Context()
+        protected override Task ContextAsync()
         {
             string streamId = Guid.NewGuid().ToString();
             _attempt1 = streamId.BuildAttempt();
@@ -237,12 +237,12 @@ namespace NEventStore.Persistence.AcceptanceTests
                 }
             );
 
-            Persistence.Commit(_attempt1);
+            return Persistence.Commit(_attempt1);
         }
 
-        protected override void Because()
+        protected override async Task BecauseAsync()
         {
-            _thrown = Catch.Exception(() => Persistence.Commit(_attempt2));
+            _thrown = await Catch.Exception(() => Persistence.Commit(_attempt2));
         }
 
         [Fact]
@@ -258,17 +258,17 @@ namespace NEventStore.Persistence.AcceptanceTests
         private CommitAttempt _failedAttempt;
         private Exception _thrown;
 
-        protected override void Context()
+        protected override async Task ContextAsync()
         {
             string streamId = Guid.NewGuid().ToString();
             CommitAttempt successfulAttempt = streamId.BuildAttempt();
-            Persistence.Commit(successfulAttempt);
+            await Persistence.Commit(successfulAttempt);
             _failedAttempt = streamId.BuildAttempt();
         }
 
-        protected override void Because()
+        protected override async Task BecauseAsync()
         {
-            _thrown = Catch.Exception(() => Persistence.Commit(_failedAttempt));
+            _thrown = await Catch.Exception(() => Persistence.Commit(_failedAttempt));
         }
 
         [Fact]
@@ -297,9 +297,9 @@ namespace NEventStore.Persistence.AcceptanceTests
                 commit.Events);
         }
 
-        protected override void Because()
+        protected override async Task BecauseAsync()
         {
-            _thrown = Catch.Exception(() => Persistence.Commit(_attemptTwice));
+            _thrown = await Catch.Exception(() => Persistence.Commit(_attemptTwice));
         }
 
         [Fact]
@@ -347,11 +347,11 @@ namespace NEventStore.Persistence.AcceptanceTests
         private Snapshot _snapshot;
         private string _streamId;
 
-        protected override void Context()
+        protected override Task ContextAsync()
         {
             _streamId = Guid.NewGuid().ToString();
             _snapshot = new Snapshot(_streamId, 1, "Snapshot");
-            Persistence.CommitSingle(streamId: _streamId);
+            return Persistence.CommitSingle(_streamId);
         }
 
         protected override void Because()
@@ -458,9 +458,9 @@ namespace NEventStore.Persistence.AcceptanceTests
             Persistence.AddSnapshot(new Snapshot(_streamId, _oldest2.StreamRevision, SnapshotData));
         }
 
-        protected override void Because()
+        protected override Task BecauseAsync()
         {
-            Persistence.Commit(_oldest2.BuildNextAttempt());
+            return Persistence.Commit(_oldest2.BuildNextAttempt());
         }
 
         // Because Raven and Mongo update the stream head asynchronously, occasionally will fail this test
@@ -510,9 +510,9 @@ namespace NEventStore.Persistence.AcceptanceTests
 
     public class when_purging_all_commits : PersistenceEngineConcern
     {
-        protected override void Context()
+        protected override Task ContextAsync()
         {
-            Persistence.CommitSingle();
+            return Persistence.CommitSingle();
         }
 
         protected override void Because()
@@ -560,15 +560,15 @@ namespace NEventStore.Persistence.AcceptanceTests
         private static Exception _thrown;
         private DateTime _attemptACommitStamp;
 
-        protected override void Context()
+        protected override Task ContextAsync()
         {
             _streamId = Guid.NewGuid().ToString();
-            Persistence.Commit(_streamId.BuildAttempt());
+            return Persistence.Commit(_streamId.BuildAttempt());
         }
 
-        protected override void Because()
+        protected override async Task BecauseAsync()
         {
-            _thrown = Catch.Exception(() => Persistence.Commit(_streamId.BuildAttempt()));
+            _thrown = await Catch.Exception(() => Persistence.Commit(_streamId.BuildAttempt()));
         }
 
         [Fact]
@@ -593,18 +593,18 @@ namespace NEventStore.Persistence.AcceptanceTests
         private static Exception _thrown;
         private DateTime _attemptACommitStamp;
 
-        protected override void Context()
+        protected override async Task ContextAsync()
         {
             _streamId = Guid.NewGuid().ToString();
             DateTime now = SystemTime.UtcNow;
-            Persistence.Commit(_streamId.BuildAttempt(now, _bucketAId));
+            await Persistence.Commit(_streamId.BuildAttempt(now, _bucketAId));
             _attemptACommitStamp = Persistence.GetFrom(_bucketAId, _streamId, 0, int.MaxValue).First().CommitStamp;
             _attemptForBucketB = _streamId.BuildAttempt(now.Subtract(TimeSpan.FromDays(1)), _bucketBId);
         }
 
-        protected override void Because()
+        protected override async Task BecauseAsync()
         {
-            _thrown = Catch.Exception(() => Persistence.Commit(_attemptForBucketB));
+            _thrown = await Catch.Exception(() => Persistence.Commit(_attemptForBucketB));
         }
 
         [Fact]
@@ -640,12 +640,12 @@ namespace NEventStore.Persistence.AcceptanceTests
 
         private static Snapshot _snapshot;
 
-        protected override void Context()
+        protected override async Task ContextAsync()
         {
             _streamId = Guid.NewGuid().ToString();
             _snapshot = new Snapshot(_bucketBId, _streamId, 1, "Snapshot");
-            Persistence.Commit(_streamId.BuildAttempt(bucketId: _bucketAId));
-            Persistence.Commit(_streamId.BuildAttempt(bucketId: _bucketBId));
+            await Persistence.Commit(_streamId.BuildAttempt(bucketId: _bucketAId));
+            await Persistence.Commit(_streamId.BuildAttempt(bucketId: _bucketBId));
         }
 
         protected override void Because()
@@ -664,13 +664,13 @@ namespace NEventStore.Persistence.AcceptanceTests
     {
         private ICommit[] _commits;
 
-        protected override void Context()
+        protected override async Task ContextAsync()
         {
             const string bucketAId = "a";
             const string bucketBId = "b";
-            Persistence.Commit(Guid.NewGuid().ToString().BuildAttempt(bucketId: bucketAId));
-            Persistence.Commit(Guid.NewGuid().ToString().BuildAttempt(bucketId: bucketBId));
-            Persistence.Commit(Guid.NewGuid().ToString().BuildAttempt(bucketId: bucketAId));
+            await Persistence.Commit(Guid.NewGuid().ToString().BuildAttempt(bucketId: bucketAId));
+            await Persistence.Commit(Guid.NewGuid().ToString().BuildAttempt(bucketId: bucketBId));
+            await Persistence.Commit(Guid.NewGuid().ToString().BuildAttempt(bucketId: bucketAId));
         }
 
         protected override void Because()
@@ -703,11 +703,11 @@ namespace NEventStore.Persistence.AcceptanceTests
         const string _bucketBId = "b";
 
         string _streamId;
-        protected override void Context()
+        protected override async Task ContextAsync()
         {
             _streamId = Guid.NewGuid().ToString();
-            Persistence.Commit(_streamId.BuildAttempt(bucketId: _bucketAId));
-            Persistence.Commit(_streamId.BuildAttempt(bucketId: _bucketBId));
+            await Persistence.Commit(_streamId.BuildAttempt(bucketId: _bucketAId));
+            await Persistence.Commit(_streamId.BuildAttempt(bucketId: _bucketBId));
         }
 
         protected override void Because()
@@ -914,7 +914,7 @@ namespace NEventStore.Persistence.AcceptanceTests
     public class when_a_payload_is_large : PersistenceEngineConcern
     {
         [Fact]
-        public void can_commit()
+        public async Task can_commit()
         {
             const int bodyLength = 100000;
             var attempt = new CommitAttempt(
@@ -926,7 +926,7 @@ namespace NEventStore.Persistence.AcceptanceTests
                 DateTime.UtcNow,
                 new Dictionary<string, object>(),
                 new List<EventMessage> { new EventMessage { Body = new string('a', bodyLength) } });
-            Persistence.Commit(attempt);
+            await Persistence.Commit(attempt);
 
             ICommit commits = Persistence.GetFrom().Single();
             commits.Events.Single().Body.ToString().Length.Should().Be(bodyLength);

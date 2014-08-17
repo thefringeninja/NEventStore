@@ -56,14 +56,7 @@ namespace NEventStore.Persistence.InMemory
             return LongCheckpoint.Parse(checkpointToken);
         }
 
-        public ICommit Commit(CommitAttempt attempt)
-        {
-            ThrowWhenDisposed();
-            Logger.Debug(Resources.AttemptingToCommit, attempt.CommitId, attempt.StreamId, attempt.CommitSequence);
-            return this[attempt.BucketId].Commit(attempt, new LongCheckpoint(Interlocked.Increment(ref _checkpoint)));
-        }
-
-        public Task<ICommit> CommitAsync(CommitAttempt attempt)
+        public Task<ICommit> Commit(CommitAttempt attempt)
         {
             ThrowWhenDisposed();
             Logger.Debug(Resources.AttemptingToCommit, attempt.CommitId, attempt.StreamId, attempt.CommitSequence);

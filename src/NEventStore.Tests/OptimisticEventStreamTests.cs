@@ -250,7 +250,7 @@ namespace NEventStore
 
         protected override void Context()
         {
-            A.CallTo(() => Persistence.CommitAsync(A<CommitAttempt>._))
+            A.CallTo(() => Persistence.Commit(A<CommitAttempt>._))
                 .Invokes((CommitAttempt _) => _constructed = _)
                 .ReturnsLazily((CommitAttempt attempt) => new Commit(
                     attempt.BucketId,
@@ -277,7 +277,7 @@ namespace NEventStore
         [Fact]
         public void should_provide_a_commit_to_the_underlying_infrastructure()
         {
-            A.CallTo(() => Persistence.CommitAsync(A<CommitAttempt>._)).MustHaveHappened(Repeated.Exactly.Once);
+            A.CallTo(() => Persistence.Commit(A<CommitAttempt>._)).MustHaveHappened(Repeated.Exactly.Once);
         }
 
         [Fact]
@@ -423,7 +423,7 @@ namespace NEventStore
             _committed = new[] {BuildCommitStub(1, 1, 1)};
             _discoveredOnCommit = new[] {BuildCommitStub(3, 2, 2)};
 
-            A.CallTo(() => Persistence.CommitAsync(A<CommitAttempt>._)).Throws(new ConcurrencyException());
+            A.CallTo(() => Persistence.Commit(A<CommitAttempt>._)).Throws(new ConcurrencyException());
             A.CallTo(() => Persistence.GetFrom(BucketId, StreamId, StreamRevision, int.MaxValue)).Returns(_committed);
             A.CallTo(() => Persistence.GetFrom(BucketId, StreamId, StreamRevision + 1, int.MaxValue)).Returns(_discoveredOnCommit);
 

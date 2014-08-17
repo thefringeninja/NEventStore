@@ -22,19 +22,10 @@ namespace NEventStore.Diagnostics
             _persistence.Initialize();
         }
 
-        public ICommit Commit(CommitAttempt attempt)
+        public async Task<ICommit> Commit(CommitAttempt attempt)
         {
             Stopwatch clock = Stopwatch.StartNew();
-            ICommit commit = _persistence.Commit(attempt);
-            clock.Stop();
-            _counters.CountCommit(attempt.Events.Count, clock.ElapsedMilliseconds);
-            return commit;
-        }
-
-        public async Task<ICommit> CommitAsync(CommitAttempt attempt)
-        {
-            Stopwatch clock = Stopwatch.StartNew();
-            ICommit commit = await _persistence.CommitAsync(attempt).NotOnCapturedContext();
+            ICommit commit = await _persistence.Commit(attempt).NotOnCapturedContext();
             clock.Stop();
             _counters.CountCommit(attempt.Events.Count, clock.ElapsedMilliseconds);
             return commit;

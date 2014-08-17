@@ -15,13 +15,13 @@ namespace NEventStore.Persistence.AcceptanceTests
         public static Task<ICommit> CommitSingle(this IPersistStreams persistence, string streamId = null)
         {
             CommitAttempt commitAttempt = (streamId ?? Guid.NewGuid().ToString()).BuildAttempt();
-            return persistence.CommitAsync(commitAttempt);
+            return persistence.Commit(commitAttempt);
         }
 
         public static Task<ICommit> CommitNext(this IPersistStreams persistence, ICommit previous)
         {
             var nextAttempt = previous.BuildNextAttempt();
-            return persistence.CommitAsync(nextAttempt);
+            return persistence.Commit(nextAttempt);
         }
 
         public static async Task<IEnumerable<CommitAttempt>> CommitMany(this IPersistStreams persistence, int numberOfCommits, string streamId = null)
@@ -32,7 +32,7 @@ namespace NEventStore.Persistence.AcceptanceTests
             for (int i = 0; i < numberOfCommits; i++)
             {
                 attempt = attempt == null ? (streamId ?? Guid.NewGuid().ToString()).BuildAttempt() : attempt.BuildNextAttempt();
-                await persistence.CommitAsync(attempt);
+                await persistence.Commit(attempt);
                 commits.Add(attempt);
             }
 

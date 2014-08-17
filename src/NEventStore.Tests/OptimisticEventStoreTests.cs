@@ -7,6 +7,7 @@ namespace NEventStore
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Threading.Tasks;
     using FakeItEasy;
     using FluentAssertions;
     using NEventStore.Persistence;
@@ -366,9 +367,9 @@ namespace NEventStore
     {
         private Exception thrown;
 
-        protected override void Because()
+        protected override async Task BecauseAsync()
         {
-            thrown = Catch.Exception(() => ((ICommitEvents) Store).Commit(null));
+            thrown = await Catch.Exception(() => ((ICommitEvents) Store).Commit(null));
         }
 
         [Fact]
@@ -388,7 +389,7 @@ namespace NEventStore
             _populatedAttempt = BuildCommitAttemptStub(1, 1);
 
             A.CallTo(() => Persistence.Commit(_populatedAttempt))
-                .ReturnsLazily((CommitAttempt attempt) =>
+                .ReturnsLazily((CommitAttempt attempt) => 
                 {
                     _populatedCommit = new Commit(attempt.BucketId,
                         attempt.StreamId,
@@ -399,7 +400,7 @@ namespace NEventStore
                         new LongCheckpoint(0).Value,
                         attempt.Headers,
                         attempt.Events);
-                    return _populatedCommit;
+                    return Task.FromResult(_populatedCommit);
                 });
 
             var hook = A.Fake<IPipelineHook>();
@@ -408,9 +409,9 @@ namespace NEventStore
             PipelineHooks.Add(hook);
         }
 
-        protected override void Because()
+        protected override Task BecauseAsync()
         {
-            ((ICommitEvents) Store).Commit(_populatedAttempt);
+            return ((ICommitEvents) Store).Commit(_populatedAttempt);
         }
 
         [Fact]

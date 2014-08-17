@@ -121,39 +121,12 @@ namespace NEventStore.Persistence.Sql
             return string.IsNullOrWhiteSpace(checkpointToken) ? null : LongCheckpoint.Parse(checkpointToken);
         }
 
-        public virtual ICommit Commit(CommitAttempt attempt)
+        public async Task<ICommit> Commit(CommitAttempt attempt)
         {
             ICommit commit;
             try
             {
-                commit = PersistCommit(attempt);
-                Logger.Debug(Messages.CommitPersisted, attempt.CommitId);
-            }
-            catch (Exception e)
-            {
-                if (!(e is UniqueKeyViolationException))
-                {
-                    throw;
-                }
-
-                if (DetectDuplicate(attempt))
-                {
-                    Logger.Info(Messages.DuplicateCommit);
-                    throw new DuplicateCommitException(e.Message, e);
-                }
-
-                Logger.Info(Messages.ConcurrentWriteDetected);
-                throw new ConcurrencyException(e.Message, e);
-            }
-            return commit;
-        }
-
-        public async Task<ICommit> CommitAsync(CommitAttempt attempt)
-        {
-            ICommit commit;
-            try
-            {
-                commit = await PersistCommitAsync(attempt).NotOnCapturedContext();
+                commit = await PersistCommit(attempt).NotOnCapturedContext();
                 Logger.Debug(Messages.CommitPersisted, attempt.CommitId);
             }
             catch (Exception e)
@@ -284,38 +257,7 @@ namespace NEventStore.Persistence.Sql
         protected virtual void OnPersistCommit(IDbStatement cmd, CommitAttempt attempt)
         {}
 
-        private ICommit PersistCommit(CommitAttempt attempt)
-        {
-            Logger.Debug(Messages.AttemptingToCommit, attempt.Events.Count, attempt.StreamId, attempt.CommitSequence, attempt.BucketId);
-            string streamId = _streamIdHasher.GetHash(attempt.StreamId);
-            return ExecuteCommand((connection, cmd) =>
-            {
-                cmd.AddParameter(_dialect.BucketId, attempt.BucketId, DbType.AnsiString);
-                cmd.AddParameter(_dialect.StreamId, streamId, DbType.AnsiString);
-                cmd.AddParameter(_dialect.StreamIdOriginal, attempt.StreamId);
-                cmd.AddParameter(_dialect.StreamRevision, attempt.StreamRevision);
-                cmd.AddParameter(_dialect.Items, attempt.Events.Count);
-                cmd.AddParameter(_dialect.CommitId, attempt.CommitId);
-                cmd.AddParameter(_dialect.CommitSequence, attempt.CommitSequence);
-                cmd.AddParameter(_dialect.CommitStamp, attempt.CommitStamp);
-                cmd.AddParameter(_dialect.Headers, _serializer.Serialize(attempt.Headers));
-                _dialect.AddPayloadParamater(_connectionFactory, connection, cmd, _serializer.Serialize(attempt.Events.ToList())).Wait();
-                OnPersistCommit(cmd, attempt);
-                var checkpointNumber = cmd.ExecuteScalar(_dialect.PersistCommit).ToLong();
-                return new Commit(
-                    attempt.BucketId,
-                    attempt.StreamId,
-                    attempt.StreamRevision,
-                    attempt.CommitId,
-                    attempt.CommitSequence,
-                    attempt.CommitStamp,
-                    checkpointNumber.ToString(CultureInfo.InvariantCulture),
-                    attempt.Headers,
-                    attempt.Events);
-            });
-        }
-
-        private Task<ICommit> PersistCommitAsync(CommitAttempt attempt)
+        private Task<ICommit> PersistCommit(CommitAttempt attempt)
         {
             Logger.Debug(Messages.AttemptingToCommit, attempt.Events.Count, attempt.StreamId, attempt.CommitSequence, attempt.BucketId);
             string streamId = _streamIdHasher.GetHash(attempt.StreamId);
@@ -332,6 +274,7 @@ namespace NEventStore.Persistence.Sql
                 cmd.AddParameter(_dialect.Headers, _serializer.Serialize(attempt.Headers));
                 _dialect.AddPayloadParamater(_connectionFactory, connection, cmd, _serializer.Serialize(attempt.Events.ToList())).Wait();
                 OnPersistCommit(cmd, attempt);
+                await Task.Delay(1);
                 var checkpointNumber = (await cmd.ExecuteScalarAsync(_dialect.PersistCommit).NotOnCapturedContext()).ToLong();
                 ICommit commit = new Commit(
                     attempt.BucketId,

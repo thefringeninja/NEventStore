@@ -33,7 +33,7 @@
 
         protected override Task BecauseAsync()
         {
-            return _sqlPersistenceEngine.CommitAsync(
+            return _sqlPersistenceEngine.Commit(
                 new CommitAttempt("streamid", 1, Guid.NewGuid(), 1, SystemTime.UtcNow, null, new[] {new EventMessage()}));
         }
 
@@ -91,9 +91,9 @@
                 new DelegateStreamIdHasher(streamId => null));
         }
 
-        protected override void Because()
+        protected override async Task BecauseAsync()
         {
-            _exception = Catch.Exception(() => _sqlPersistenceEngine.Commit(
+            _exception = await Catch.Exception(() => _sqlPersistenceEngine.Commit(
                 new CommitAttempt("streamId", 1, Guid.NewGuid(), 1, SystemTime.UtcNow, null, new[] {new EventMessage()})));
         }
 
@@ -120,9 +120,9 @@
                 new DelegateStreamIdHasher(streamId => " "));
         }
 
-        protected override void Because()
+        protected override async Task BecauseAsync()
         {
-            _exception = Catch.Exception(() => _sqlPersistenceEngine.Commit(
+            _exception = await Catch.Exception(() => _sqlPersistenceEngine.Commit(
                 new CommitAttempt("streamId", 1, Guid.NewGuid(), 1, SystemTime.UtcNow, null, new[] { new EventMessage() })));
         }
 
@@ -149,9 +149,9 @@
                 new DelegateStreamIdHasher(streamId => string.Empty));
         }
 
-        protected override void Because()
+        protected override async Task BecauseAsync()
         {
-            _exception = Catch.Exception(() => _sqlPersistenceEngine.Commit(
+            _exception = await Catch.Exception(() => _sqlPersistenceEngine.Commit(
                 new CommitAttempt("streamId", 1, Guid.NewGuid(), 1, SystemTime.UtcNow, null, new[] { new EventMessage() })));
         }
 
@@ -178,9 +178,9 @@
                 new DelegateStreamIdHasher(streamId => "0123456789012345678901234567890123456789X"));
         }
 
-        protected override void Because()
+        protected override async Task BecauseAsync()
         {
-            _exception = Catch.Exception(() => _sqlPersistenceEngine.Commit(
+            _exception = await Catch.Exception(() => _sqlPersistenceEngine.Commit(
                 new CommitAttempt("streamId", 1, Guid.NewGuid(), 1, SystemTime.UtcNow, null, new[] { new EventMessage() })));
         }
 

@@ -90,7 +90,7 @@ namespace NEventStore.Persistence.Sql.SqlDialects
         {
             try
             {
-                using (IDbCommand command = BuildCommand(commandText))
+                using (var command = BuildCommand(commandText))
                 {
                     return command.ExecuteScalar();
                 }
@@ -105,13 +105,14 @@ namespace NEventStore.Persistence.Sql.SqlDialects
             }
         }
 
-        public Task<object> ExecuteScalarAsync(string commandText)
+        public async Task<object> ExecuteScalarAsync(string commandText)
         {
             try
             {
                 using (var command = BuildCommand(commandText))
                 {
-                    return command.ExecuteScalarAsync();
+                    var o = await command.ExecuteScalarAsync();
+                    return o;
                 }
             }
             catch (Exception e)

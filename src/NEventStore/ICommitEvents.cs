@@ -32,8 +32,8 @@ namespace NEventStore
         /// <exception cref="ConcurrencyException" />
         /// <exception cref="StorageException" />
         /// <exception cref="StorageUnavailableException" />
-        ICommit Commit(CommitAttempt attempt);
+        //ICommit Commit(CommitAttempt attempt);
 
-        Task<ICommit> CommitAsync(CommitAttempt attempt);
+        Task<ICommit> Commit(CommitAttempt attempt);
     }
 }

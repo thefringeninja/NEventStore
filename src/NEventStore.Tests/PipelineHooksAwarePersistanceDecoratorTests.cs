@@ -7,6 +7,7 @@ namespace NEventStore
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Threading.Tasks;
     using FakeItEasy;
     using NEventStore.Persistence;
     using NEventStore.Persistence.AcceptanceTests.BDD;
@@ -82,9 +83,9 @@ namespace NEventStore
                 _attempt = new CommitAttempt(streamId, 1, Guid.NewGuid(), 1, DateTime.Now, null, new List<EventMessage> {new EventMessage()});
             }
 
-            protected override void Because()
+            protected override Task BecauseAsync()
             {
-                Decorator.Commit(_attempt);
+                return Decorator.Commit(_attempt);
             }
 
             [Fact]
