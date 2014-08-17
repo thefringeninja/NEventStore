@@ -6,6 +6,7 @@ namespace NEventStore.Persistence.AcceptanceTests
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Threading.Tasks;
     using FluentAssertions;
     using NEventStore.Diagnostics;
     using NEventStore.Persistence.AcceptanceTests.BDD;
@@ -124,9 +125,9 @@ namespace NEventStore.Persistence.AcceptanceTests
         private ICommit _oldest, _oldest2, _oldest3;
         private string _streamId;
 
-        protected override void Context()
+        protected override async Task ContextAsync()
         {
-            _oldest = Persistence.CommitSingle(); // 2 events, revision 1-2
+            _oldest = await Persistence.CommitSingle(); // 2 events, revision 1-2
             _oldest2 = Persistence.CommitNext(_oldest); // 2 events, revision 3-4
             _oldest3 = Persistence.CommitNext(_oldest2); // 2 events, revision 5-6
             Persistence.CommitNext(_oldest3); // 2 events, revision 7-8
@@ -160,9 +161,9 @@ namespace NEventStore.Persistence.AcceptanceTests
         private ICommit _oldest, _oldest2, _oldest3;
         private string _streamId;
 
-        protected override void Context()
+        protected override async Task ContextAsync()
         {
-            _oldest = Persistence.CommitSingle(); // 2 events, revision 1-2
+            _oldest = await Persistence.CommitSingle(); // 2 events, revision 1-2
             _oldest2 = Persistence.CommitNext(_oldest); // 2 events, revision 3-4
             _oldest3 = Persistence.CommitNext(_oldest2); // 2 events, revision 5-6
             Persistence.CommitNext(_oldest3); // 2 events, revision 7-8
@@ -193,9 +194,9 @@ namespace NEventStore.Persistence.AcceptanceTests
         private CommitAttempt _attemptWithSameRevision;
         private Exception _thrown;
 
-        protected override void Context()
+        protected override async Task ContextAsync()
         {
-            ICommit commit = Persistence.CommitSingle();
+            ICommit commit = await Persistence.CommitSingle();
             _attemptWithSameRevision = commit.StreamId.BuildAttempt();
         }
 
@@ -282,9 +283,9 @@ namespace NEventStore.Persistence.AcceptanceTests
         private CommitAttempt _attemptTwice;
         private Exception _thrown;
 
-        protected override void Context()
+        protected override async Task ContextAsync()
         {
-            var commit = Persistence.CommitSingle();
+            var commit = await Persistence.CommitSingle();
             _attemptTwice = new CommitAttempt(
                 commit.BucketId,
                 commit.StreamId,
@@ -350,7 +351,7 @@ namespace NEventStore.Persistence.AcceptanceTests
         {
             _streamId = Guid.NewGuid().ToString();
             _snapshot = new Snapshot(_streamId, 1, "Snapshot");
-            Persistence.CommitSingle(_streamId);
+            Persistence.CommitSingle(streamId: _streamId);
         }
 
         protected override void Because()
@@ -378,10 +379,10 @@ namespace NEventStore.Persistence.AcceptanceTests
         private string _streamId;
         private ISnapshot _tooFarForward;
 
-        protected override void Context()
+        protected override async Task ContextAsync()
         {
             _streamId = Guid.NewGuid().ToString();
-            ICommit commit1 = Persistence.CommitSingle(_streamId); // rev 1-2
+            ICommit commit1 = await Persistence.CommitSingle(_streamId); // rev 1-2
             ICommit commit2 = Persistence.CommitNext(commit1); // rev 3-4
             Persistence.CommitNext(commit2); // rev 5-6
 
@@ -421,10 +422,10 @@ namespace NEventStore.Persistence.AcceptanceTests
         private ICommit _oldest, _oldest2;
         private string _streamId;
 
-        protected override void Context()
+        protected override async Task ContextAsync()
         {
             _streamId = Guid.NewGuid().ToString();
-            _oldest = Persistence.CommitSingle(_streamId);
+            _oldest = await Persistence.CommitSingle(_streamId);
             _oldest2 = Persistence.CommitNext(_oldest);
             _newest = Persistence.CommitNext(_oldest2);
         }
@@ -449,10 +450,10 @@ namespace NEventStore.Persistence.AcceptanceTests
         private ICommit _oldest, _oldest2;
         private string _streamId;
 
-        protected override void Context()
+        protected override async Task ContextAsync()
         {
             _streamId = Guid.NewGuid().ToString();
-            _oldest = Persistence.CommitSingle(_streamId);
+            _oldest = await Persistence.CommitSingle(streamId: _streamId);
             _oldest2 = Persistence.CommitNext(_oldest);
             Persistence.AddSnapshot(new Snapshot(_streamId, _oldest2.StreamRevision, SnapshotData));
         }
@@ -541,9 +542,9 @@ namespace NEventStore.Persistence.AcceptanceTests
             Persistence.Dispose();
         }
 
-        protected override void Because()
+        protected override async Task BecauseAsync()
         {
-            _thrown = Catch.Exception(() => Persistence.CommitSingle());
+            _thrown = await Catch.Exception(() => Persistence.CommitSingle());
         }
 
         [Fact]

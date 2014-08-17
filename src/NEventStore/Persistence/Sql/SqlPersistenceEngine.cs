@@ -411,7 +411,7 @@ namespace NEventStore.Persistence.Sql
 
         protected virtual TransactionScope OpenQueryScope()
         {
-            return OpenCommandScope() ?? new TransactionScope(TransactionScopeOption.Suppress);
+            return OpenCommandScope() ?? new TransactionScope(TransactionScopeOption.Suppress, TransactionScopeAsyncFlowOption.Enabled);
         }
 
         private void ThrowWhenDisposed()
@@ -524,7 +524,7 @@ namespace NEventStore.Persistence.Sql
 
         protected virtual TransactionScope OpenCommandScope()
         {
-            return new TransactionScope(_scopeOption);
+            return new TransactionScope(_scopeOption, TransactionScopeAsyncFlowOption.Enabled);
         }
 
         private static bool RecoverableException(Exception e)
