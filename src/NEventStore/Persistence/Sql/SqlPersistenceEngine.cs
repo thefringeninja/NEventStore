@@ -123,29 +123,32 @@ namespace NEventStore.Persistence.Sql
 
         public async Task<ICommit> Commit(CommitAttempt attempt)
         {
-            ICommit commit;
+            ICommit commit = null;
+            Exception exception = null;
             try
             {
                 commit = await PersistCommit(attempt).NotOnCapturedContext();
                 Logger.Debug(Messages.CommitPersisted, attempt.CommitId);
             }
-            catch (Exception e)
+            catch (Exception ex)
             {
-                if (!(e is UniqueKeyViolationException))
+                if (!(ex is UniqueKeyViolationException))
                 {
                     throw;
                 }
-
-                if (DetectDuplicate(attempt))
-                {
-                    Logger.Info(Messages.DuplicateCommit);
-                    throw new DuplicateCommitException(e.Message, e);
-                }
-
-                Logger.Info(Messages.ConcurrentWriteDetected);
-                throw new ConcurrencyException(e.Message, e);
+                exception = ex;
             }
-            return commit;
+            if (exception == null)
+            {
+                return commit;
+            }
+            if (await DetectDuplicate(attempt))
+            {
+                Logger.Info(Messages.DuplicateCommit);
+                throw new DuplicateCommitException(exception.Message, exception);
+            }
+            Logger.Info(Messages.ConcurrentWriteDetected);
+            throw new ConcurrencyException(exception.Message, exception);
         }
 
         public virtual IEnumerable<IStreamHead> GetStreamsToSnapshot(string bucketId, int maxThreshold)
@@ -290,16 +293,16 @@ namespace NEventStore.Persistence.Sql
             });
         }
 
-        private bool DetectDuplicate(CommitAttempt attempt)
+        private Task<bool> DetectDuplicate(CommitAttempt attempt)
         {
             string streamId = _streamIdHasher.GetHash(attempt.StreamId);
-            return ExecuteCommand(cmd =>
+            return ExecuteCommandAsync(async cmd =>
                 {
                     cmd.AddParameter(_dialect.BucketId, attempt.BucketId, DbType.AnsiString);
                     cmd.AddParameter(_dialect.StreamId, streamId, DbType.AnsiString);
                     cmd.AddParameter(_dialect.CommitId, attempt.CommitId);
                     cmd.AddParameter(_dialect.CommitSequence, attempt.CommitSequence);
-                    object value = cmd.ExecuteScalar(_dialect.DuplicateCommit);
+                    object value = await cmd.ExecuteScalarAsync(_dialect.DuplicateCommit);
                     return (value is long ? (long) value : (int) value) > 0;
                 });
         }
@@ -417,6 +420,11 @@ namespace NEventStore.Persistence.Sql
                     throw;
                 }
             }
+        }
+
+        private Task<T> ExecuteCommandAsync<T>(Func<IDbStatement, Task<T>> command)
+        {
+            return ExecuteCommandAsync((_, statement) => command(statement));
         }
 
         private async Task<T> ExecuteCommandAsync<T>(Func<DbConnection, IDbStatement, Task<T>> command)
