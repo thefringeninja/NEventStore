@@ -3,7 +3,7 @@ namespace CommonDomain.Persistence.EventStore
 	using System;
 	using System.Collections.Generic;
 	using System.Linq;
-
+	using System.Threading.Tasks;
 	using NEventStore;
 	using NEventStore.Persistence;
 
@@ -60,13 +60,12 @@ namespace CommonDomain.Persistence.EventStore
 			return aggregate as TAggregate;
 		}
 
-		public virtual void Save(IAggregate aggregate, Guid commitId, Action<IDictionary<string, object>> updateHeaders)
+		public virtual Task Save(IAggregate aggregate, Guid commitId, Action<IDictionary<string, object>> updateHeaders)
 		{
-			Save(Bucket.Default, aggregate, commitId, updateHeaders);
-
+			return Save(Bucket.Default, aggregate, commitId, updateHeaders);
 		}
 
-		public void Save(string bucketId, IAggregate aggregate, Guid commitId, Action<IDictionary<string, object>> updateHeaders)
+		public async Task Save(string bucketId, IAggregate aggregate, Guid commitId, Action<IDictionary<string, object>> updateHeaders)
 		{
 			Dictionary<string, object> headers = PrepareHeaders(aggregate, updateHeaders);
 			while (true)
@@ -76,7 +75,7 @@ namespace CommonDomain.Persistence.EventStore
 
 				try
 				{
-					stream.CommitChanges(commitId);
+					await stream.CommitChanges(commitId).NotOnCapturedContext();
 					aggregate.ClearUncommittedEvents();
 					return;
 				}

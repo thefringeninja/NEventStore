@@ -4,6 +4,7 @@ namespace NEventStore
     using System.Collections.Generic;
     using System.Diagnostics.CodeAnalysis;
     using System.Linq;
+    using System.Threading.Tasks;
     using NEventStore.Logging;
 
     [SuppressMessage("Microsoft.Naming", "CA1711:IdentifiersShouldNotHaveIncorrectSuffix",
@@ -82,7 +83,7 @@ namespace NEventStore
             _events.Add(uncommittedEvent);
         }
 
-        public void CommitChanges(Guid commitId)
+        public async Task CommitChanges(Guid commitId)
         {
             Logger.Debug(Resources.AttemptingToCommitChanges, StreamId);
 
@@ -98,7 +99,7 @@ namespace NEventStore
 
             try
             {
-                PersistChanges(commitId);
+                await PersistChanges(commitId);
             }
             catch (ConcurrencyException)
             {
@@ -181,12 +182,12 @@ namespace NEventStore
             return false;
         }
 
-        private void PersistChanges(Guid commitId)
+        private async Task PersistChanges(Guid commitId)
         {
             CommitAttempt attempt = BuildCommitAttempt(commitId);
 
             Logger.Debug(Resources.PersistingCommit, commitId, StreamId);
-            ICommit commit = _persistence.Commit(attempt);
+            ICommit commit = await _persistence.CommitAsync(attempt);
 
             PopulateStream(StreamRevision + 1, attempt.StreamRevision, new[] { commit });
             ClearChanges();

@@ -753,7 +753,7 @@ namespace NEventStore.Persistence.AcceptanceTests
         private ICommit[] _commits;
         private int _moreThanPageSize;
 
-        protected override void Because()
+        protected override async Task BecauseAsync()
         {
             _moreThanPageSize = ConfiguredPageSizeForTesting + 1;
             var eventStore = new OptimisticEventStore(Persistence, null);
@@ -763,7 +763,7 @@ namespace NEventStore.Persistence.AcceptanceTests
                 using (IEventStream stream = eventStore.OpenStream(Guid.NewGuid()))
                 {
                     stream.Add(new EventMessage { Body = i });
-                    stream.CommitChanges(Guid.NewGuid());
+                    await stream.CommitChanges(Guid.NewGuid());
                 }
             }
             ICommit[] commits = Persistence.GetFrom().ToArray();

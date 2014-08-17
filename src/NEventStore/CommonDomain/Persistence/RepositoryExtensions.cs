@@ -1,17 +1,18 @@
 ﻿namespace CommonDomain.Persistence
 {
 	using System;
+	using System.Threading.Tasks;
 
-	public static class RepositoryExtensions
+    public static class RepositoryExtensions
 	{
-		public static void Save(this IRepository repository, IAggregate aggregate, Guid commitId)
+		public static Task Save(this IRepository repository, IAggregate aggregate, Guid commitId)
 		{
-			repository.Save(aggregate, commitId, a => { });
+			return repository.Save(aggregate, commitId, a => { });
 		}
 
-		public static void Save(this IRepository repository, string bucketId, IAggregate aggregate, Guid commitId)
+		public static Task Save(this IRepository repository, string bucketId, IAggregate aggregate, Guid commitId)
 		{
-			repository.Save(bucketId, aggregate, commitId, a => { });
+			return repository.Save(bucketId, aggregate, commitId, a => { });
 		}
 	}
 }

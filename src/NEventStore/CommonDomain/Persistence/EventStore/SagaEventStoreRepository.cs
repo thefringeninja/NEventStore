@@ -3,7 +3,7 @@ namespace CommonDomain.Persistence.EventStore
 	using System;
 	using System.Collections.Generic;
 	using System.Linq;
-
+	using System.Threading.Tasks;
 	using NEventStore;
 	using NEventStore.Persistence;
 
@@ -33,7 +33,7 @@ namespace CommonDomain.Persistence.EventStore
             return BuildSaga<TSaga>(OpenStream(bucketId, sagaId));
 		}
 
-        public void Save(string bucketId, ISaga saga, Guid commitId, Action<IDictionary<string, object>> updateHeaders)
+        public async Task Save(string bucketId, ISaga saga, Guid commitId, Action<IDictionary<string, object>> updateHeaders)
 		{
 			if (saga == null)
 			{
@@ -43,7 +43,7 @@ namespace CommonDomain.Persistence.EventStore
 			Dictionary<string, object> headers = PrepareHeaders(saga, updateHeaders);
             IEventStream stream = PrepareStream(bucketId, saga, headers);
 
-            Persist(stream, commitId);
+            await Persist(stream, commitId).NotOnCapturedContext();
 
 			saga.ClearUncommittedEvents();
 			saga.ClearUndispatchedMessages();
@@ -141,11 +141,11 @@ namespace CommonDomain.Persistence.EventStore
 			return stream;
 		}
 
-		private static void Persist(IEventStream stream, Guid commitId)
+		private static async Task Persist(IEventStream stream, Guid commitId)
 		{
 			try
 			{
-				stream.CommitChanges(commitId);
+				await stream.CommitChanges(commitId).NotOnCapturedContext();
 			}
 			catch (DuplicateCommitException)
 			{

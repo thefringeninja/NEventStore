@@ -2,6 +2,7 @@ namespace NEventStore
 {
     using System;
     using System.Collections.Generic;
+    using System.Threading.Tasks;
     using NEventStore.Persistence;
 
     /// <summary>
@@ -61,7 +62,7 @@ namespace NEventStore
         /// <exception cref="ConcurrencyException" />
         /// <exception cref="StorageException" />
         /// <exception cref="StorageUnavailableException" />
-        void CommitChanges(Guid commitId);
+        Task CommitChanges(Guid commitId);
 
         /// <summary>
         ///     Clears the uncommitted changes.

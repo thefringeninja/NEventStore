@@ -5,6 +5,7 @@ namespace NEventStore
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Threading.Tasks;
     using FakeItEasy;
     using FluentAssertions;
     using NEventStore.Persistence;
@@ -216,9 +217,9 @@ namespace NEventStore
 
     public class when_committing_an_empty_changeset : on_the_event_stream
     {
-        protected override void Because()
+        protected override async Task BecauseAsync()
         {
-            Stream.CommitChanges(Guid.NewGuid());
+            await Stream.CommitChanges(Guid.NewGuid());
         }
 
         [Fact]
@@ -249,7 +250,7 @@ namespace NEventStore
 
         protected override void Context()
         {
-            A.CallTo(() => Persistence.Commit(A<CommitAttempt>._))
+            A.CallTo(() => Persistence.CommitAsync(A<CommitAttempt>._))
                 .Invokes((CommitAttempt _) => _constructed = _)
                 .ReturnsLazily((CommitAttempt attempt) => new Commit(
                     attempt.BucketId,
@@ -268,15 +269,15 @@ namespace NEventStore
             }
         }
 
-        protected override void Because()
+        protected override async Task BecauseAsync()
         {
-            Stream.CommitChanges(_commitId);
+            await Stream.CommitChanges(_commitId);
         }
 
         [Fact]
         public void should_provide_a_commit_to_the_underlying_infrastructure()
         {
-            A.CallTo(() => Persistence.Commit(A<CommitAttempt>._)).MustHaveHappened(Repeated.Exactly.Once);
+            A.CallTo(() => Persistence.CommitAsync(A<CommitAttempt>._)).MustHaveHappened(Repeated.Exactly.Once);
         }
 
         [Fact]
@@ -396,9 +397,9 @@ namespace NEventStore
             Stream = new OptimisticEventStream(BucketId, StreamId, Persistence, 0, int.MaxValue);
         }
 
-        protected override void Because()
+        protected override async Task BecauseAsync()
         {
-            _thrown = Catch.Exception(() => Stream.CommitChanges(_dupliateCommitId));
+            _thrown = await Catch.Exception(() => Stream.CommitChanges(_dupliateCommitId));
         }
 
         [Fact]
@@ -422,7 +423,7 @@ namespace NEventStore
             _committed = new[] {BuildCommitStub(1, 1, 1)};
             _discoveredOnCommit = new[] {BuildCommitStub(3, 2, 2)};
 
-            A.CallTo(() => Persistence.Commit(A<CommitAttempt>._)).Throws(new ConcurrencyException());
+            A.CallTo(() => Persistence.CommitAsync(A<CommitAttempt>._)).Throws(new ConcurrencyException());
             A.CallTo(() => Persistence.GetFrom(BucketId, StreamId, StreamRevision, int.MaxValue)).Returns(_committed);
             A.CallTo(() => Persistence.GetFrom(BucketId, StreamId, StreamRevision + 1, int.MaxValue)).Returns(_discoveredOnCommit);
 
@@ -430,9 +431,9 @@ namespace NEventStore
             Stream.Add(_uncommitted);
         }
 
-        protected override void Because()
+        protected override async Task BecauseAsync()
         {
-            _thrown = Catch.Exception(() => Stream.CommitChanges(Guid.NewGuid()));
+            _thrown = await Catch.Exception(() => Stream.CommitChanges(Guid.NewGuid()));
         }
 
         [Fact]
@@ -475,9 +476,9 @@ namespace NEventStore
             Stream.Dispose();
         }
 
-        protected override void Because()
+        protected override async Task BecauseAsync()
         {
-            _thrown = Catch.Exception(() => Stream.CommitChanges(Guid.NewGuid()));
+            _thrown = await Catch.Exception(() => Stream.CommitChanges(Guid.NewGuid()));
         }
 
         [Fact]

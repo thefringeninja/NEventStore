@@ -1,6 +1,7 @@
 ﻿namespace CommonDomain
 {
     using System;
+    using System.Threading.Tasks;
     using CommonDomain.Core;
     using CommonDomain.Persistence;
     using CommonDomain.Persistence.EventStore;
@@ -136,10 +137,9 @@
     public class when_an_aggregate_is_persisted_concurrently_by_two_clients : SpecificationBase
     {
         private Guid _aggregateId;
-        protected IRepository _repository1;
-        protected IRepository _repository2;
-
-        protected IStoreEvents _storeEvents;
+        private IRepository _repository1;
+        private IRepository _repository2;
+        private IStoreEvents _storeEvents;
         private Exception _thrown;
 
         protected override void Context()
@@ -155,16 +155,16 @@
             _repository1.Save(aggregate, Guid.NewGuid());
         }
 
-        protected override void Because()
+        protected override async Task BecauseAsync()
         {
             var agg1 = _repository1.GetById<TestAggregate>(_aggregateId);
             var agg2 = _repository2.GetById<TestAggregate>(_aggregateId);
             agg1.ChangeName("one");
             agg2.ChangeName("two");
 
-            _repository1.Save(agg1, Guid.NewGuid());
+            await _repository1.Save(agg1, Guid.NewGuid());
 
-            _thrown = Catch.Exception(() => _repository2.Save(agg2, Guid.NewGuid()));
+            _thrown = await Catch.Exception(() => _repository2.Save(agg2, Guid.NewGuid()));
         }
 
         [Fact]
