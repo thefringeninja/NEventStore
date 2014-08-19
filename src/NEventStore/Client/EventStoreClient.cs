@@ -14,7 +14,7 @@ namespace NEventStore.Client
         private readonly int _pageSize;
         private readonly int _subscriberQueueThreshold;
         private readonly ConcurrentDictionary<Guid, Subscriber> _subscribers = new ConcurrentDictionary<Guid, Subscriber>();
-        private int _isRetrieving;
+        private InterlockedBoolean _isRetrieving = new InterlockedBoolean();
         private readonly IDisposable _retrieveTimer;
         private readonly IObservable<ClientStatistics> _statistics;
 
@@ -90,7 +90,7 @@ namespace NEventStore.Client
 
         private void Retrieve()
         {
-            if (Interlocked.CompareExchange(ref _isRetrieving, 1, 0) == 1)
+            if (_isRetrieving.CompareExchange(true, false))
             {
                 return;
             }
@@ -113,7 +113,7 @@ namespace NEventStore.Client
                         subscriber.Enqueue(commit);
                     }
                 }
-                Interlocked.Exchange(ref _isRetrieving, 0);
+                _isRetrieving.Set(false);
             });
         }
 
@@ -125,7 +125,7 @@ namespace NEventStore.Client
             private readonly Action _onThreashold;
             private readonly Action _onDispose;
             private readonly ConcurrentQueue<ICommit> _commits = new ConcurrentQueue<ICommit>();
-            private int _isPushing;
+            private InterlockedBoolean _isPushing = new InterlockedBoolean();
 
             public Subscriber(
                 string checkpoint,
@@ -165,7 +165,7 @@ namespace NEventStore.Client
 
             private void Push()
             {
-                if (Interlocked.CompareExchange(ref _isPushing, 1, 0) == 1)
+                if (_isPushing.CompareExchange(true, false))
                 {
                     return;
                 }
@@ -180,7 +180,7 @@ namespace NEventStore.Client
                             _onThreashold();
                         }
                     }
-                    Interlocked.Exchange(ref _isPushing, 0);
+                    _isPushing.Set(false);
                 });
             }
         }
