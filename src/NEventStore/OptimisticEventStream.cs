@@ -20,14 +20,15 @@ namespace NEventStore
         private readonly ICommitEvents _persistence;
         private readonly IDictionary<string, object> _uncommittedHeaders = new Dictionary<string, object>();
         private bool _disposed;
-
-        private Task _populationTask;
+        private TaskCompletionSource<bool> _populationSource;
 
         public OptimisticEventStream(string bucketId, string streamId, ICommitEvents persistence)
         {
             BucketId = bucketId;
             StreamId = streamId;
             _persistence = persistence;
+            _populationSource = new TaskCompletionSource<bool>();
+            _populationSource.SetResult(true);
         }
 
         public OptimisticEventStream(string bucketId, string streamId, ICommitEvents persistence, int minRevision, int maxRevision)
@@ -95,7 +96,7 @@ namespace NEventStore
                 throw new DuplicateCommitException();
             }
 
-            if (!HasChanges())
+            if (!await HasChanges())
             {
                 return;
             }
@@ -114,8 +115,10 @@ namespace NEventStore
             }
         }
 
-        public void ClearChanges()
+        public async Task ClearChanges()
         {
+            await _populationSource.Task;
+
             Logger.Debug(Resources.ClearingUncommittedChanges, StreamId);
             _events.Clear();
             _uncommittedHeaders.Clear();
@@ -125,9 +128,8 @@ namespace NEventStore
         {
             if (commits == null) return;
 
-            var source = new TaskCompletionSource<bool>(null);
-            _populationTask = source.Task;
-
+            var source = new TaskCompletionSource<bool>();
+            
             commits.Subscribe(commit =>
             {
                 Logger.Verbose(Resources.AddingCommitsToStream, commit.CommitId, commit.Events.Count, StreamId);
@@ -145,6 +147,8 @@ namespace NEventStore
 
             }, source.SetException, () => source.SetResult(true));
 
+            _populationSource.TrySetCanceled();
+            _populationSource = source;
         }
 
 
@@ -177,12 +181,14 @@ namespace NEventStore
             }
         }
 
-        private bool HasChanges()
+        private async Task<bool> HasChanges()
         {
             if (_disposed)
             {
                 throw new ObjectDisposedException(Resources.AlreadyDisposed);
             }
+
+            await _populationSource.Task;
 
             if (_events.Count > 0)
             {

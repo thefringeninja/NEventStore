@@ -206,7 +206,7 @@ namespace NEventStore
 
         protected override void Because()
         {
-            Stream.ClearChanges();
+            Stream.ClearChanges().Wait();
         }
 
         [Fact]
