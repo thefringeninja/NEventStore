@@ -33,8 +33,8 @@ task UpdateVersion {
 }
 
 task Compile {
-	exec { msbuild /nologo /verbosity:quiet $sln_file /p:Configuration=$target_config /t:Clean }
-	exec { msbuild /nologo /verbosity:quiet $sln_file /p:Configuration=$target_config /p:TargetFrameworkVersion=v4.5.1 }
+	exec { msbuild /nologo /verbosity:quiet $sln_file /p:Configuration=$target_config /t:Clean /p:OutDir=$output_directory }
+	exec { msbuild /nologo /verbosity:quiet $sln_file /p:Configuration=$target_config /p:TargetFrameworkVersion=v4.5.1 /p:OutDir=$output_directory }
 }
 
 task Test -depends RunUnitTests, RunPersistenceTests, RunSerializationTests
@@ -42,7 +42,7 @@ task Test -depends RunUnitTests, RunPersistenceTests, RunSerializationTests
 task RunUnitTests {
 	"Unit Tests"
 	EnsureDirectory $output_directory
-	Invoke-XUnit -Path $src_directory -TestSpec '*NEventStore.Tests.dll' `
+	Invoke-XUnit -Path $output_directory -TestSpec '*NEventStore.Tests.dll' `
     -SummaryPath $output_directory\unit_tests.xml `
     -XUnitPath $xunit_path
 }
@@ -50,7 +50,7 @@ task RunUnitTests {
 task RunPersistenceTests -precondition { $runPersistenceTests } {
 	"Persistence Tests"
 	EnsureDirectory $output_directory
-	Invoke-XUnit -Path $src_directory -TestSpec '*Persistence.MsSql.Tests.dll','*Persistence.MySql.Tests.dll','*Persistence.Oracle.Tests.dll','*Persistence.PostgreSql.Tests.dll','*Persistence.Sqlite.Tests.dll' `
+	Invoke-XUnit -Path $output_directory -TestSpec '*Persistence.MsSql.Tests.dll','*Persistence.MySql.Tests.dll','*Persistence.Oracle.Tests.dll','*Persistence.PostgreSql.Tests.dll','*Persistence.Sqlite.Tests.dll' `
     -SummaryPath $output_directory\persistence_tests.xml `
     -XUnitPath $xunit_path
 }
@@ -58,7 +58,7 @@ task RunPersistenceTests -precondition { $runPersistenceTests } {
 task RunSerializationTests {
 	"Serialization Tests"
 	EnsureDirectory $output_directory
-	Invoke-XUnit -Path $src_directory -TestSpec '*Serialization.*.Tests.dll' `
+	Invoke-XUnit -Path $output_directory -TestSpec '*Serialization.*.Tests.dll' `
     -SummaryPath $output_directory\serialization_tests.xml `
     -XUnitPath $xunit_path
 }
@@ -69,13 +69,14 @@ task Package -depends Build, PackageNEventStore {
 
 task PackageNEventStore -depends Clean, Compile {
 	mkdir "$publish_directory\bin" | out-null
+	$target_directory = "$src_directory/$output_directory/$target_config"
 	"H1"
 	Merge-Assemblies -outputFile "$publish_directory/bin/NEventStore.dll" -files @(
-		"$src_directory/NEventStore/bin/$target_config/NEventStore.dll",
-		"$src_directory/NEventStore/bin/$target_config/System.Reactive.Interfaces.dll",
-		"$src_directory/NEventStore/bin/$target_config/System.Reactive.Core.dll",
-		"$src_directory/NEventStore/bin/$target_config/System.Reactive.Linq.dll",
-		"$src_directory/NEventStore/bin/$target_config/Newtonsoft.Json.dll"
+		"$target_directory/NEventStore.dll",
+		"$target_directory/System.Reactive.Interfaces.dll",
+		"$target_directory/System.Reactive.Core.dll",
+		"$target_directory/System.Reactive.Linq.dll",
+		"$target_directory/Newtonsoft.Json.dll"
 	)
 	"H2"
 }
