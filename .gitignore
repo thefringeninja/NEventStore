@@ -108,3 +108,4 @@ Backup*/
 UpgradeLog*.XML
 publish-net45/
 nunit.TestResult.*
+_NCrunch*/
