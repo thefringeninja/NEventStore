@@ -7,6 +7,7 @@ namespace NEventStore
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Reactive.Linq;
     using System.Threading.Tasks;
     using FakeItEasy;
     using FluentAssertions;
@@ -73,7 +74,7 @@ namespace NEventStore
 
         protected override void Context()
         {
-            A.CallTo(() => Persistence.GetFrom(Bucket.Default, streamId, 0, 0)).Returns(new ICommit[0]);
+            A.CallTo(() => Persistence.GetFrom(Bucket.Default, streamId, 0, 0)).Returns(Observable.Empty<ICommit>());
         }
 
         protected override void Because()
@@ -132,7 +133,7 @@ namespace NEventStore
         protected override void Context()
         {
             A.CallTo(() => Persistence.GetFrom(Bucket.Default, streamId, MinRevision, int.MaxValue))
-                .Returns(Enumerable.Empty<ICommit>());
+                .Returns(Enumerable.Empty<ICommit>().ToObservable());
         }
 
         protected override void Because()
@@ -159,7 +160,7 @@ namespace NEventStore
             _committed = BuildCommitStub(MinRevision, 1);
 
             A.CallTo(() => Persistence.GetFrom(Bucket.Default, streamId, MinRevision, MaxRevision))
-                .Returns(new[] { _committed });
+                .Returns(new[] { _committed }.ToObservable());
 
             var hook = A.Fake<IPipelineHook>();
             A.CallTo(() => hook.Select(_committed)).Returns(_committed);
@@ -201,7 +202,7 @@ namespace NEventStore
             _snapshot = new Snapshot(streamId, 42, "snapshot");
             _committed = new[] { BuildCommitStub(42, 0)};
 
-            A.CallTo(() => Persistence.GetFrom(Bucket.Default, streamId, 42, MaxRevision)).Returns(_committed);
+            A.CallTo(() => Persistence.GetFrom(Bucket.Default, streamId, 42, MaxRevision)).Returns(_committed.ToObservable());
         }
 
         protected override void Because()
@@ -231,7 +232,7 @@ namespace NEventStore
                 new[] { BuildCommitStub(HeadStreamRevision, HeadCommitSequence)});
 
             A.CallTo(() => Persistence.GetFrom(Bucket.Default, streamId, HeadStreamRevision, int.MaxValue))
-                .Returns(_committed);
+                .Returns(_committed.ToObservable());
         }
 
         protected override void Because()
@@ -281,7 +282,7 @@ namespace NEventStore
         protected override void Context()
         {
             A.CallTo(() => Persistence.GetFrom(Bucket.Default, streamId, 0, int.MaxValue))
-                .Returns(Enumerable.Empty<ICommit>());
+                .Returns(Enumerable.Empty<ICommit>().ToObservable());
         }
 
         protected override void Because()
@@ -306,7 +307,7 @@ namespace NEventStore
         {
             _committed = BuildCommitStub(1, 1);
 
-            A.CallTo(() => Persistence.GetFrom(Bucket.Default, streamId, 0, int.MaxValue)).Returns(new[] { _committed });
+            A.CallTo(() => Persistence.GetFrom(Bucket.Default, streamId, 0, int.MaxValue)).Returns(new[] { _committed }.ToObservable());
         }
 
         protected override void Because()
@@ -348,7 +349,7 @@ namespace NEventStore
             _committed = BuildCommitStub(1, 1);
 
             A.CallTo(() => Persistence.GetFrom(Bucket.Default, streamId, snapshot.StreamRevision, int.MaxValue))
-                .Returns(new[] { _committed });
+                .Returns(new[] { _committed }.ToObservable());
         }
 
         protected override void Because()

@@ -5,6 +5,7 @@ namespace NEventStore
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Reactive.Linq;
     using System.Threading.Tasks;
     using FakeItEasy;
     using FluentAssertions;
@@ -36,7 +37,7 @@ namespace NEventStore
             _committed[3].Headers["Common"] = string.Empty;
             _committed[0].Headers["Unique"] = string.Empty;
 
-            A.CallTo(() => Persistence.GetFrom(BucketId, StreamId, MinRevision, MaxRevision)).Returns(_committed);
+            A.CallTo(() => Persistence.GetFrom(BucketId, StreamId, MinRevision, MaxRevision)).Returns(_committed.ToObservable());
         }
 
         protected override void Because()
@@ -102,7 +103,7 @@ namespace NEventStore
                 BuildCommitStub(8, 3, _eventsPerCommit) // 7-8
             };
 
-            A.CallTo(() => Persistence.GetFrom(BucketId, StreamId, 0, int.MaxValue)).Returns(_committed);
+            A.CallTo(() => Persistence.GetFrom(BucketId, StreamId, 0, int.MaxValue)).Returns(_committed.ToObservable());
         }
 
         protected override void Because()
@@ -392,7 +393,7 @@ namespace NEventStore
             _committed = new[] {BuildCommitStub(1, 1, 1)};
             _dupliateCommitId = _committed[0].CommitId;
 
-            A.CallTo(() => Persistence.GetFrom(BucketId, StreamId, 0, int.MaxValue)).Returns(_committed);
+            A.CallTo(() => Persistence.GetFrom(BucketId, StreamId, 0, int.MaxValue)).Returns(_committed.ToObservable());
 
             Stream = new OptimisticEventStream(BucketId, StreamId, Persistence, 0, int.MaxValue);
         }
@@ -424,8 +425,8 @@ namespace NEventStore
             _discoveredOnCommit = new[] {BuildCommitStub(3, 2, 2)};
 
             A.CallTo(() => Persistence.Commit(A<CommitAttempt>._)).Throws(new ConcurrencyException());
-            A.CallTo(() => Persistence.GetFrom(BucketId, StreamId, StreamRevision, int.MaxValue)).Returns(_committed);
-            A.CallTo(() => Persistence.GetFrom(BucketId, StreamId, StreamRevision + 1, int.MaxValue)).Returns(_discoveredOnCommit);
+            A.CallTo(() => Persistence.GetFrom(BucketId, StreamId, StreamRevision, int.MaxValue)).Returns(_committed.ToObservable());
+            A.CallTo(() => Persistence.GetFrom(BucketId, StreamId, StreamRevision + 1, int.MaxValue)).Returns(_discoveredOnCommit.ToObservable());
 
             Stream = new OptimisticEventStream(BucketId, StreamId, Persistence, StreamRevision, int.MaxValue);
             Stream.Add(_uncommitted);

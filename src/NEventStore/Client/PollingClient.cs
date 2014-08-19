@@ -3,6 +3,7 @@
     using System;
     using System.Collections.Generic;
     using System.Reactive;
+    using System.Reactive.Linq;
     using System.Reactive.Subjects;
     using System.Threading;
     using System.Threading.Tasks;
@@ -112,7 +113,8 @@
                 {
                     try
                     {
-                        IEnumerable<ICommit> commits = _persistStreams.GetFrom(_checkpointToken);
+                        IEnumerable<ICommit> commits = _persistStreams.GetFrom(_checkpointToken).ToEnumerable();
+                        
                         foreach (var commit in commits)
                         {
                             if (_stopRequested.IsCancellationRequested)

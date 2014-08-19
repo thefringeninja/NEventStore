@@ -3,6 +3,7 @@ namespace NEventStore.Persistence
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Reactive.Linq;
     using System.Threading.Tasks;
     using NEventStore.Logging;
 
@@ -31,7 +32,7 @@ namespace NEventStore.Persistence
             _original.Dispose();
         }
 
-        public IEnumerable<ICommit> GetFrom(string bucketId, string streamId, int minRevision, int maxRevision)
+        public IObservable<ICommit> GetFrom(string bucketId, string streamId, int minRevision, int maxRevision)
         {
             return ExecuteHooks(_original.GetFrom(bucketId, streamId, minRevision, maxRevision));
         }
@@ -61,7 +62,7 @@ namespace NEventStore.Persistence
             _original.Initialize();
         }
 
-        public IEnumerable<ICommit> GetFrom(string checkpointToken = null)
+        public IObservable<ICommit> GetFrom(string checkpointToken = null)
         {
             return ExecuteHooks(_original.GetFrom(checkpointToken));
         }
@@ -108,26 +109,36 @@ namespace NEventStore.Persistence
             get { return _original.IsDisposed; }
         }
 
-        private IEnumerable<ICommit> ExecuteHooks(IEnumerable<ICommit> commits)
+        private ICommit Filter(ICommit commit)
         {
-            foreach (var commit in commits)
+            var filtered = commit;
+
+            foreach (var hook in _pipelineHooks)
             {
-                ICommit filtered = commit;
-                foreach (var hook in _pipelineHooks.Where(x => (filtered = x.Select(filtered)) == null))
-                {
-                    Logger.Info(Resources.PipelineHookSkippedCommit, hook.GetType(), commit.CommitId);
-                    break;
-                }
+                filtered = hook.Select(filtered);
 
                 if (filtered == null)
                 {
-                    Logger.Info(Resources.PipelineHookFilteredCommit);
-                }
-                else
-                {
-                    yield return filtered;
-                }
+                    Logger.Info(Resources.PipelineHookSkippedCommit, hook.GetType(), commit.CommitId);
+                    break;
+                };
             }
+
+            if (filtered != null)
+            {
+                return filtered;
+            }
+            
+            Logger.Info(Resources.PipelineHookFilteredCommit);
+            return null;
+        }
+
+        private IObservable<ICommit> ExecuteHooks(IObservable<ICommit> commits)
+        {
+            return (from commit in commits
+                let filtered = Filter(commit)
+                where filtered != null
+                select filtered);
         }
     }
 }

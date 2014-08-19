@@ -28,7 +28,7 @@ namespace NEventStore.Persistence
         /// </summary>
         /// <param name="checkpointToken">The checkpoint token.</param>
         /// <returns>An enumerable of Commits.</returns>
-        IEnumerable<ICommit> GetFrom(string checkpointToken = null);
+        IObservable<ICommit> GetFrom(string checkpointToken = null);
 
         /// <summary>
         /// Gets a checkpoint object that is comparable with other checkpoints from this storage engine.

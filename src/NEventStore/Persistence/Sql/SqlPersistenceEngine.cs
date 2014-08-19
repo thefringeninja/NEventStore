@@ -6,6 +6,7 @@ namespace NEventStore.Persistence.Sql
     using System.Data.Common;
     using System.Globalization;
     using System.Linq;
+    using System.Reactive.Linq;
     using System.Threading;
     using System.Threading.Tasks;
     using System.Transactions;
@@ -94,7 +95,7 @@ namespace NEventStore.Persistence.Sql
             ExecuteCommand(statement => statement.ExecuteWithoutExceptions(_dialect.InitializeStorage));
         }
 
-        public virtual IEnumerable<ICommit> GetFrom(string bucketId, string streamId, int minRevision, int maxRevision)
+        public virtual IObservable<ICommit> GetFrom(string bucketId, string streamId, int minRevision, int maxRevision)
         {
             Logger.Debug(Messages.GettingAllCommitsBetween, streamId, minRevision, maxRevision);
             streamId = _streamIdHasher.GetHash(streamId);
@@ -113,7 +114,7 @@ namespace NEventStore.Persistence.Sql
                    /* return query
                         .ExecutePagedQuery(statement, (q, r) => {})
                         .Select(x => x.GetCommit(_serializer, _dialect));*/
-                });
+                }).ToObservable();
         }
 
         public ICheckpoint GetCheckpoint(string checkpointToken)
@@ -228,7 +229,7 @@ namespace NEventStore.Persistence.Sql
                 });
         }
 
-        public IEnumerable<ICommit> GetFrom(string checkpointToken)
+        public IObservable<ICommit> GetFrom(string checkpointToken)
         {
             LongCheckpoint checkpoint = LongCheckpoint.Parse(checkpointToken);
             Logger.Debug(Messages.GettingAllCommitsFromCheckpoint, checkpointToken);
@@ -238,7 +239,7 @@ namespace NEventStore.Persistence.Sql
                 query.AddParameter(_dialect.CheckpointNumber, checkpoint.LongValue);
                 return query.ExecutePagedQuery(statement, (q, r) => { })
                     .Select(x => x.GetCommit(_serializer, _dialect));
-            });
+            }).ToObservable();
         }
 
         public bool IsDisposed

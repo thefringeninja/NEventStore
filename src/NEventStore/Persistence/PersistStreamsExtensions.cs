@@ -23,7 +23,7 @@ namespace NEventStore.Persistence
         ///     Gets all commits after from start checkpoint.
         /// </summary>
         /// <param name="persistStreams">The IPersistStreams instance.</param>
-        public static IEnumerable<ICommit> GetFromStart(this IPersistStreams persistStreams)
+        public static IObservable<ICommit> GetFromStart(this IPersistStreams persistStreams)
         {
             if (persistStreams == null)
             {

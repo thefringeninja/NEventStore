@@ -4,6 +4,7 @@ namespace NEventStore.Persistence.InMemory
     using System.Collections.Concurrent;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Reactive.Linq;
     using System.Threading;
     using System.Threading.Tasks;
     using NEventStore.Logging;
@@ -31,14 +32,14 @@ namespace NEventStore.Persistence.InMemory
             Logger.Info(Resources.InitializingEngine);
         }
 
-        public IEnumerable<ICommit> GetFrom(string bucketId, string streamId, int minRevision, int maxRevision)
+        public IObservable<ICommit> GetFrom(string bucketId, string streamId, int minRevision, int maxRevision)
         {
             ThrowWhenDisposed();
             Logger.Debug(Resources.GettingAllCommitsFromRevision, streamId, minRevision, maxRevision);
-            return this[bucketId].GetFrom(streamId, minRevision, maxRevision);
+            return this[bucketId].GetFrom(streamId, minRevision, maxRevision).ToObservable();
         }
 
-        public IEnumerable<ICommit> GetFrom(string checkpointToken = null)
+        public IObservable<ICommit> GetFrom(string checkpointToken = null)
         {
             checkpointToken = checkpointToken ?? "0";
             Logger.Debug(Resources.GettingAllCommitsFromCheckpoint, checkpointToken);
@@ -48,7 +49,7 @@ namespace NEventStore.Persistence.InMemory
                 .SelectMany(b => b.GetCommits())
                 .Where(c => c.Checkpoint.CompareTo(checkpoint) > 0)
                 .OrderBy(c => c.Checkpoint)
-                .ToArray();
+                .ToArray().ToObservable();
         }
 
         public ICheckpoint GetCheckpoint(string checkpointToken = null)

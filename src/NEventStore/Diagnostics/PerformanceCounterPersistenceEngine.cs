@@ -41,12 +41,12 @@ namespace NEventStore.Diagnostics
             return _persistence.GetCheckpoint(checkpointToken);
         }
 
-        public IEnumerable<ICommit> GetFrom(string bucketId, string streamId, int minRevision, int maxRevision)
+        public IObservable<ICommit> GetFrom(string bucketId, string streamId, int minRevision, int maxRevision)
         {
             return _persistence.GetFrom(bucketId, streamId, minRevision, maxRevision);
         }
 
-        public IEnumerable<ICommit> GetFrom(string checkpointToken)
+        public IObservable<ICommit> GetFrom(string checkpointToken)
         {
             return _persistence.GetFrom(checkpointToken);
         }

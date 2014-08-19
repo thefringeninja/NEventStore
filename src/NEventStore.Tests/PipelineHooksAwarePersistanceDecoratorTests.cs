@@ -7,6 +7,7 @@ namespace NEventStore
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Reactive.Linq;
     using System.Threading.Tasks;
     using FakeItEasy;
     using NEventStore.Persistence;
@@ -50,14 +51,14 @@ namespace NEventStore
                 pipelineHooks.Add(_hook2);
 
                 A.CallTo(() => persistence.GetFrom(Bucket.Default, _commit.StreamId, 0, int.MaxValue))
-                    .Returns(new List<ICommit> { _commit });
+                    .Returns(new List<ICommit> { _commit }.ToObservable());
             }
 
             protected override void Because()
             {
                 // ReSharper disable once ReturnValueOfPureMethodIsNotUsed
                 // Forces enumeration of commits.
-                Decorator.GetFrom(Bucket.Default, _commit.StreamId, 0, int.MaxValue).ToList();
+                Decorator.GetFrom(Bucket.Default, _commit.StreamId, 0, int.MaxValue).ToEnumerable().ToList();
             }
 
             [Fact]
@@ -113,13 +114,13 @@ namespace NEventStore
                 A.CallTo(() => _hook2.Select(_commit)).Returns(_commit);
                 pipelineHooks.Add(_hook2);
 
-                A.CallTo(() => persistence.GetFrom(null)).Returns(new List<ICommit> {_commit});
+                A.CallTo(() => persistence.GetFrom(null)).Returns(Observable.Return(_commit));
             }
 
             protected override void Because()
             {
 // ReSharper disable once ReturnValueOfPureMethodIsNotUsed
-                Decorator.GetFrom().ToList();
+                Decorator.GetFrom().ToEnumerable().ToList();
             }
 
             [Fact]

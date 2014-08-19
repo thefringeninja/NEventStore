@@ -6,6 +6,7 @@ namespace NEventStore.Persistence.AcceptanceTests
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Reactive.Linq;
     using System.Threading.Tasks;
     using FluentAssertions;
     using NEventStore.Diagnostics;
@@ -60,7 +61,7 @@ namespace NEventStore.Persistence.AcceptanceTests
 
         protected override void Because()
         {
-            _persisted = Persistence.GetFrom(_streamId, 0, int.MaxValue).First();
+            _persisted = Persistence.GetFrom(_streamId, 0, int.MaxValue).ToEnumerable().First();
         }
 
         [Fact]
@@ -137,7 +138,7 @@ namespace NEventStore.Persistence.AcceptanceTests
 
         protected override void Because()
         {
-            _committed = Persistence.GetFrom(_streamId, LoadFromCommitContainingRevision, UpToCommitWithContainingRevision).ToArray();
+            _committed = Persistence.GetFrom(_streamId, LoadFromCommitContainingRevision, UpToCommitWithContainingRevision).ToEnumerable().ToArray();
         }
 
         [Fact]
@@ -173,7 +174,7 @@ namespace NEventStore.Persistence.AcceptanceTests
 
         protected override void Because()
         {
-            _committed = Persistence.GetFrom(_streamId, LoadFromCommitContainingRevision, UpToCommitWithContainingRevision).ToArray();
+            _committed = Persistence.GetFrom(_streamId, LoadFromCommitContainingRevision, UpToCommitWithContainingRevision).ToEnumerable().ToArray();
         }
 
         [Fact]
@@ -323,7 +324,7 @@ namespace NEventStore.Persistence.AcceptanceTests
 
         protected override void Because()
         {
-            _loaded = Persistence.GetFrom(_streamId, 0, int.MaxValue).ToArray();
+            _loaded = Persistence.GetFrom(_streamId, 0, int.MaxValue).ToEnumerable().ToArray();
         }
 
         [Fact]
@@ -492,7 +493,7 @@ namespace NEventStore.Persistence.AcceptanceTests
 
         protected override void Because()
         {
-            _loaded = Persistence.GetFrom(checkPoint.ToString()).Select(c => c.CommitId).ToList();
+            _loaded = Persistence.GetFrom(checkPoint.ToString()).Select(c => c.CommitId).ToEnumerable().ToList();
         }
 
         [Fact]
@@ -523,7 +524,7 @@ namespace NEventStore.Persistence.AcceptanceTests
         [Fact]
         public void should_not_find_any_commits_stored()
         {
-            Persistence.GetFrom().Count().Should().Be(0);
+            Persistence.GetFrom().ToEnumerable().Count().Should().Be(0);
         }
 
         [Fact]
@@ -598,7 +599,7 @@ namespace NEventStore.Persistence.AcceptanceTests
             _streamId = Guid.NewGuid().ToString();
             DateTime now = SystemTime.UtcNow;
             await Persistence.Commit(_streamId.BuildAttempt(now, _bucketAId));
-            _attemptACommitStamp = Persistence.GetFrom(_bucketAId, _streamId, 0, int.MaxValue).First().CommitStamp;
+            _attemptACommitStamp = Persistence.GetFrom(_bucketAId, _streamId, 0, int.MaxValue).ToEnumerable().First().CommitStamp;
             _attemptForBucketB = _streamId.BuildAttempt(now.Subtract(TimeSpan.FromDays(1)), _bucketBId);
         }
 
@@ -616,7 +617,7 @@ namespace NEventStore.Persistence.AcceptanceTests
         [Fact]
         public void should_persist_to_the_correct_bucket()
         {
-            ICommit[] stream = Persistence.GetFrom(_bucketBId, _streamId, 0, int.MaxValue).ToArray();
+            ICommit[] stream = Persistence.GetFrom(_bucketBId, _streamId, 0, int.MaxValue).ToEnumerable().ToArray();
             stream.Should().NotBeNull();
             stream.Count().Should().Be(1);
         }
@@ -624,7 +625,7 @@ namespace NEventStore.Persistence.AcceptanceTests
         [Fact]
         public void should_not_affect_the_stream_from_the_other_bucket()
         {
-            ICommit[] stream = Persistence.GetFrom(_bucketAId, _streamId, 0, int.MaxValue).ToArray();
+            ICommit[] stream = Persistence.GetFrom(_bucketAId, _streamId, 0, int.MaxValue).ToEnumerable().ToArray();
             stream.Should().NotBeNull();
             stream.Count().Should().Be(1);
             stream.First().CommitStamp.Should().Be(_attemptACommitStamp);
@@ -675,7 +676,7 @@ namespace NEventStore.Persistence.AcceptanceTests
 
         protected override void Because()
         {
-            _commits = Persistence.GetFromStart().ToArray();
+            _commits = Persistence.GetFromStart().ToEnumerable().ToArray();
         }
 
         [Fact]
@@ -720,7 +721,7 @@ namespace NEventStore.Persistence.AcceptanceTests
         {
             Persistence
                 .GetFrom()
-                .Select(c => c.BucketId == _bucketAId)
+                .Select(c => c.BucketId == _bucketAId).ToEnumerable()
                 .Should()
                 .BeEmpty();
         }
@@ -730,7 +731,7 @@ namespace NEventStore.Persistence.AcceptanceTests
         {
             Persistence
                 .GetFrom()
-                .Select(c => c.BucketId == _bucketBId)
+                .Select(c => c.BucketId == _bucketBId).ToEnumerable()
                 .Should()
                 .BeEmpty();
         }
@@ -766,8 +767,8 @@ namespace NEventStore.Persistence.AcceptanceTests
                     await stream.CommitChanges(Guid.NewGuid());
                 }
             }
-            ICommit[] commits = Persistence.GetFrom().ToArray();
-            _commits = Persistence.GetFrom().ToArray();
+            ICommit[] commits = Persistence.GetFrom().ToEnumerable().ToArray();
+            _commits = Persistence.GetFrom().ToEnumerable().ToArray();
         }
 
         [Fact]
@@ -928,7 +929,7 @@ namespace NEventStore.Persistence.AcceptanceTests
                 new List<EventMessage> { new EventMessage { Body = new string('a', bodyLength) } });
             await Persistence.Commit(attempt);
 
-            ICommit commits = Persistence.GetFrom().Single();
+            ICommit commits = Persistence.GetFrom().ToEnumerable().Single();
             commits.Events.Single().Body.ToString().Length.Should().Be(bodyLength);
         }
     }
