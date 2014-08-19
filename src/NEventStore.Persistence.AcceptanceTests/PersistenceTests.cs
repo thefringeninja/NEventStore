@@ -951,7 +951,7 @@ namespace NEventStore.Persistence.AcceptanceTests
         public void SetFixture(PersistenceEngineFixture data)
         {
             _fixture = data;
-            _fixture.Initialize(ConfiguredPageSizeForTesting);
+            _fixture.Initialize(ConfiguredPageSizeForTesting).Wait();
         }
     }
 
@@ -960,15 +960,15 @@ namespace NEventStore.Persistence.AcceptanceTests
         private readonly Func<int, IPersistStreams> _createPersistence;
         private IPersistStreams _persistence;
 
-        public void Initialize(int pageSize)
+        public async Task Initialize(int pageSize)
         {
             if (_persistence != null && !_persistence.IsDisposed)
             {
-                _persistence.Drop();
+                await _persistence.Drop();
                 _persistence.Dispose();
             }
             _persistence = new PerformanceCounterPersistenceEngine(_createPersistence(pageSize), "tests");
-            _persistence.Initialize();
+            await _persistence.Initialize();
         }
 
         public IPersistStreams Persistence
@@ -980,7 +980,7 @@ namespace NEventStore.Persistence.AcceptanceTests
         {
             if (_persistence != null && !_persistence.IsDisposed)
             {
-                _persistence.Drop();
+                _persistence.Drop().Wait();
                 _persistence.Dispose();
             }
         }

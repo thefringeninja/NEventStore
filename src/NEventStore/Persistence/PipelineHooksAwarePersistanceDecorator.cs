@@ -57,9 +57,9 @@ namespace NEventStore.Persistence
             return _original.GetStreamsToSnapshot(bucketId, maxThreshold);
         }
 
-        public void Initialize()
+        public Task Initialize()
         {
-            _original.Initialize();
+            return _original.Initialize();
         }
 
         public IObservable<ICommit> GetFrom(string checkpointToken = null)
@@ -72,32 +72,32 @@ namespace NEventStore.Persistence
             return _original.GetCheckpoint(checkpointToken);
         }
 
-        public void Purge()
+        public async Task Purge()
         {
-            _original.Purge();
+            await _original.Purge();
             foreach (var pipelineHook in _pipelineHooks)
             {
                 pipelineHook.OnPurge();
             }
         }
 
-        public void Purge(string bucketId)
+        public async Task Purge(string bucketId)
         {
-            _original.Purge(bucketId);
+            await _original.Purge(bucketId);
             foreach (var pipelineHook in _pipelineHooks)
             {
                 pipelineHook.OnPurge(bucketId);
             }
         }
 
-        public void Drop()
+        public Task Drop()
         {
-            _original.Drop();
+            return _original.Drop();
         }
 
-        public void DeleteStream(string bucketId, string streamId)
+        public async Task DeleteStream(string bucketId, string streamId)
         {
-            _original.DeleteStream(bucketId, streamId);
+            await _original.DeleteStream(bucketId, streamId);
             foreach (var pipelineHook in _pipelineHooks)
             {
                 pipelineHook.OnDeleteStream(bucketId, streamId);

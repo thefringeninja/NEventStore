@@ -84,15 +84,15 @@ namespace NEventStore.Persistence.Sql
             GC.SuppressFinalize(this);
         }
 
-        public virtual void Initialize()
+        public virtual Task Initialize()
         {
             if (Interlocked.Increment(ref _initialized) > 1)
             {
-                return;
+                return Task.FromResult(true);
             }
 
             Logger.Debug(Messages.InitializingStorage);
-            ExecuteCommand(statement => statement.ExecuteWithoutExceptions(_dialect.InitializeStorage));
+            return ExecuteCommand(statement => statement.ExecuteWithoutExceptions(_dialect.InitializeStorage));
         }
 
         public virtual IObservable<ICommit> GetFrom(string bucketId, string streamId, int minRevision, int maxRevision)
@@ -192,36 +192,36 @@ namespace NEventStore.Persistence.Sql
                     cmd.AddParameter(_dialect.StreamRevision, snapshot.StreamRevision);
                     _dialect.AddPayloadParamater(_connectionFactory, connection, cmd, _serializer.Serialize(snapshot.Payload)).Wait();
                     return cmd.ExecuteWithoutExceptions(_dialect.AppendSnapshotToCommit);
-                }) > 0;
+                }).Result > 0;
         }
 
-        public virtual void Purge()
+        public virtual Task Purge()
         {
             Logger.Warn(Messages.PurgingStorage);
-            ExecuteCommand(cmd => cmd.ExecuteNonQuery(_dialect.PurgeStorage));
+            return ExecuteCommand(cmd => cmd.ExecuteNonQuery(_dialect.PurgeStorage));
         }
 
-        public void Purge(string bucketId)
+        public Task Purge(string bucketId)
         {
             Logger.Warn(Messages.PurgingBucket, bucketId);
-            ExecuteCommand(cmd =>
+            return ExecuteCommand(cmd =>
                 {
                     cmd.AddParameter(_dialect.BucketId, bucketId, DbType.AnsiString);
                     return cmd.ExecuteNonQuery(_dialect.PurgeBucket);
                 });
         }
 
-        public void Drop()
+        public Task Drop()
         {
             Logger.Warn(Messages.DroppingTables);
-            ExecuteCommand(cmd => cmd.ExecuteNonQuery(_dialect.Drop));
+            return ExecuteCommand(cmd => cmd.ExecuteNonQuery(_dialect.Drop));
         }
 
-        public void DeleteStream(string bucketId, string streamId)
+        public Task DeleteStream(string bucketId, string streamId)
         {
             Logger.Warn(Messages.DeletingStream, streamId, bucketId);
             streamId = _streamIdHasher.GetHash(streamId);
-            ExecuteCommand(cmd =>
+            return ExecuteCommand(cmd =>
                 {
                     cmd.AddParameter(_dialect.BucketId, bucketId, DbType.AnsiString);
                     cmd.AddParameter(_dialect.StreamId, streamId, DbType.AnsiString);
@@ -372,17 +372,17 @@ namespace NEventStore.Persistence.Sql
             throw new ObjectDisposedException(Messages.AlreadyDisposed);
         }
 
-        private T ExecuteCommand<T>(Func<IDbStatement, T> command)
+        private Task<T> ExecuteCommand<T>(Func<IDbStatement, T> command)
         {
             return ExecuteCommand((_, statement) => command(statement));
         }
 
-        private T ExecuteCommand<T>(Func<DbConnection, IDbStatement, T> command)
+        private async Task<T> ExecuteCommand<T>(Func<DbConnection, IDbStatement, T> command)
         {
             ThrowWhenDisposed();
 
             using (TransactionScope scope = OpenCommandScope())
-            using (DbConnection connection = _connectionFactory.Open().Result)
+            using (DbConnection connection = await _connectionFactory.Open())
             using (IDbTransaction transaction = _dialect.OpenTransaction(connection))
             using (IDbStatement statement = _dialect.BuildStatement(scope, connection, transaction))
             {
