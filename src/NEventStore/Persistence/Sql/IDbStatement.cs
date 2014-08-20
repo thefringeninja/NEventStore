@@ -1,7 +1,6 @@
 namespace NEventStore.Persistence.Sql
 {
     using System;
-    using System.Collections.Generic;
     using System.Data;
     using System.Threading.Tasks;
     using NEventStore.Persistence.Sql.SqlDialects;
@@ -14,14 +13,18 @@ namespace NEventStore.Persistence.Sql
 
         int ExecuteNonQuery(string commandText);
 
+        Task<int> ExecuteNonQueryAsync(string commandText);
+
         int ExecuteWithoutExceptions(string commandText);
+
+        Task<int> ExecuteWithoutExceptionsAsync(string commandText);
 
         object ExecuteScalar(string commandText);
 
         Task<object> ExecuteScalarAsync(string commandText);
 
-        IEnumerable<IDataRecord> ExecuteWithQuery(string queryText);
+        IObservable<IDataRecord> ExecuteWithQuery(string queryText);
 
-        IEnumerable<IDataRecord> ExecutePagedQuery(string queryText, NextPageDelegate nextpage);
+        IObservable<IDataRecord> ExecutePagedQuery(string queryText, NextPageDelegate nextPage = null);
     }
 }

@@ -4,10 +4,11 @@ namespace NEventStore.Persistence.Sql.SqlDialects
     using System.Collections.Generic;
     using System.Data;
     using System.Data.Common;
+    using System.Reactive;
+    using System.Reactive.Linq;
     using System.Threading.Tasks;
     using System.Transactions;
     using NEventStore.Logging;
-    using NEventStore.Persistence.Sql;
 
     public class CommonDbStatement : IDbStatement
     {
@@ -17,6 +18,7 @@ namespace NEventStore.Persistence.Sql.SqlDialects
         private readonly ISqlDialect _dialect;
         private readonly TransactionScope _scope;
         private readonly IDbTransaction _transaction;
+        private static readonly NextPageDelegate None = (command, current) => { };
 
         public CommonDbStatement(
             ISqlDialect dialect,
@@ -53,6 +55,24 @@ namespace NEventStore.Persistence.Sql.SqlDialects
             Parameters[name] = Tuple.Create(_dialect.CoalesceParameterValue(value), parameterType);
         }
 
+        public Task<int> ExecuteNonQueryAsync(string commandText)
+        {
+            try
+            {
+                using (DbCommand command = BuildCommand(commandText))
+                    return command.ExecuteNonQueryAsync();
+            }
+            catch (Exception e)
+            {
+                if (_dialect.IsDuplicate(e))
+                {
+                    throw new UniqueKeyViolationException(e.Message, e);
+                }
+
+                throw;
+            }
+        }
+
         public virtual int ExecuteWithoutExceptions(string commandText)
         {
             try
@@ -66,14 +86,25 @@ namespace NEventStore.Persistence.Sql.SqlDialects
             }
         }
 
+        public Task<int> ExecuteWithoutExceptionsAsync(string commandText)
+        {
+            try
+            {
+                return ExecuteNonQueryAsync(commandText);
+            }
+            catch (Exception)
+            {
+                Logger.Debug(Messages.ExceptionSuppressed);
+                return Task.FromResult(0);
+            }
+        }
+
         public virtual int ExecuteNonQuery(string commandText)
         {
             try
             {
                 using (IDbCommand command = BuildCommand(commandText))
-                {
                     return command.ExecuteNonQuery();
-                }
             }
             catch (Exception e)
             {
@@ -90,10 +121,8 @@ namespace NEventStore.Persistence.Sql.SqlDialects
         {
             try
             {
-                using (var command = BuildCommand(commandText))
-                {
+                using (DbCommand command = BuildCommand(commandText))
                     return command.ExecuteScalar();
-                }
             }
             catch (Exception e)
             {
@@ -109,9 +138,9 @@ namespace NEventStore.Persistence.Sql.SqlDialects
         {
             try
             {
-                using (var command = BuildCommand(commandText))
+                using (DbCommand command = BuildCommand(commandText))
                 {
-                    var o = await command.ExecuteScalarAsync();
+                    object o = await command.ExecuteScalarAsync();
                     return o;
                 }
             }
@@ -125,21 +154,64 @@ namespace NEventStore.Persistence.Sql.SqlDialects
             }
         }
 
-        public virtual IEnumerable<IDataRecord> ExecuteWithQuery(string queryText)
+        public virtual IObservable<IDataRecord> ExecuteWithQuery(string queryText)
         {
-            return ExecuteQuery(queryText, (query, latest) => { }, InfinitePageSize);
+            return ExecuteQuery(queryText, None, InfinitePageSize);
         }
 
-        public virtual IEnumerable<IDataRecord> ExecutePagedQuery(string queryText, NextPageDelegate nextpage)
+        public virtual IObservable<IDataRecord> ExecutePagedQuery(string queryText, NextPageDelegate nextpage = null)
         {
+            nextpage = nextpage ?? _dialect.NextPageDelegate;
+
             int pageSize = _dialect.CanPage ? PageSize : InfinitePageSize;
             if (pageSize > 0)
             {
                 Logger.Verbose(Messages.MaxPageSize, pageSize);
-                Parameters.Add(_dialect.Limit, Tuple.Create((object) pageSize, (DbType?) null));
+                Parameters.Add(_dialect.Limit, Tuple.Create((object)pageSize, (DbType?)null));
             }
 
             return ExecuteQuery(queryText, nextpage, pageSize);
+        }
+
+        protected virtual IObservable<IDataRecord> ExecuteQuery(string queryText, NextPageDelegate nextPage, int pageSize)
+        {
+            return Observable.Create<IDataRecord>(async (observer) =>
+            {
+                int skip = 0;
+
+                Parameters.Add(_dialect.Skip, Tuple.Create((object)skip, (DbType?)null));
+
+                DbCommand command = BuildCommand(queryText);
+                
+                for (;;)
+                {
+                    using (var reader = await command.ExecuteReaderAsync())
+                    {
+                        bool readRecords = false;
+                        while (await reader.ReadAsync())
+                        {
+                            IDataRecord record = reader;
+
+                            observer.OnNext(record);
+
+                            readRecords = true;
+
+                            nextPage(command, record);
+                        }
+
+                        if (pageSize == InfinitePageSize || false == readRecords)
+                        {
+                            break;
+                        }
+
+                        skip += pageSize;
+
+                        command.SetParameter(_dialect.Skip, skip);
+                    }
+
+                }
+                observer.OnCompleted();
+            });
         }
 
         protected virtual void Dispose(bool disposing)
@@ -162,27 +234,11 @@ namespace NEventStore.Persistence.Sql.SqlDialects
             }
         }
 
-        protected virtual IEnumerable<IDataRecord> ExecuteQuery(string queryText, NextPageDelegate nextpage, int pageSize)
-        {
-            Parameters.Add(_dialect.Skip, Tuple.Create((object) 0, (DbType?) null));
-            IDbCommand command = BuildCommand(queryText);
-
-            try
-            {
-                return new PagedEnumerationCollection(_scope, _dialect, command, nextpage, pageSize, this);
-            }
-            catch (Exception)
-            {
-                command.Dispose();
-                throw;
-            }
-        }
-
         protected virtual DbCommand BuildCommand(string statement)
         {
             Logger.Verbose(Messages.CreatingCommand);
             DbCommand command = _connection.CreateCommand();
-            ((IDbCommand)command).Transaction = _transaction;
+            ((IDbCommand) command).Transaction = _transaction;
             command.CommandText = statement;
 
             Logger.Verbose(Messages.ClientControlledTransaction, _transaction != null);

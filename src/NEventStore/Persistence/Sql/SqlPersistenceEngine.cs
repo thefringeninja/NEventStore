@@ -7,6 +7,7 @@ namespace NEventStore.Persistence.Sql
     using System.Globalization;
     using System.Linq;
     using System.Reactive.Linq;
+    using System.Reactive.Threading.Tasks;
     using System.Threading;
     using System.Threading.Tasks;
     using System.Transactions;
@@ -100,21 +101,15 @@ namespace NEventStore.Persistence.Sql
             Logger.Debug(Messages.GettingAllCommitsBetween, streamId, minRevision, maxRevision);
             streamId = _streamIdHasher.GetHash(streamId);
             return ExecuteQuery(query =>
-                {
-                    string statement = _dialect.GetCommitsFromStartingRevision;
-                    query.AddParameter(_dialect.BucketId, bucketId, DbType.AnsiString);
-                    query.AddParameter(_dialect.StreamId, streamId, DbType.AnsiString);
-                    query.AddParameter(_dialect.StreamRevision, minRevision);
-                    query.AddParameter(_dialect.MaxStreamRevision, maxRevision);
-                    query.AddParameter(_dialect.CommitSequence, 0);
-                    return query
-                        .ExecutePagedQuery(statement, _dialect.NextPageDelegate)
-                        .Select(x => x.GetCommit(_serializer, _dialect));
-
-                   /* return query
-                        .ExecutePagedQuery(statement, (q, r) => {})
-                        .Select(x => x.GetCommit(_serializer, _dialect));*/
-                }).ToObservable();
+            {
+                string statement = _dialect.GetCommitsFromStartingRevision;
+                query.AddParameter(_dialect.BucketId, bucketId, DbType.AnsiString);
+                query.AddParameter(_dialect.StreamId, streamId, DbType.AnsiString);
+                query.AddParameter(_dialect.StreamRevision, minRevision);
+                query.AddParameter(_dialect.MaxStreamRevision, maxRevision);
+                query.AddParameter(_dialect.CommitSequence, 0);
+                return query.ExecutePagedQuery(statement).Select(x => x.GetCommit(_serializer, _dialect));
+            });
         }
 
         public ICheckpoint GetCheckpoint(string checkpointToken)
@@ -160,11 +155,10 @@ namespace NEventStore.Persistence.Sql
                     string statement = _dialect.GetStreamsRequiringSnapshots;
                     query.AddParameter(_dialect.BucketId, bucketId, DbType.AnsiString);
                     query.AddParameter(_dialect.Threshold, maxThreshold);
-                    return
-                        query.ExecutePagedQuery(statement,
+                    return query.ExecutePagedQuery(statement,
                             (q, s) => q.SetParameter(_dialect.StreamId, _dialect.CoalesceParameterValue(s.StreamId()), DbType.AnsiString))
                             .Select(x => x.GetStreamToSnapshot());
-                });
+                }).ToEnumerable();
         }
 
         public virtual ISnapshot GetSnapshot(string bucketId, string streamId, int maxRevision)
@@ -177,8 +171,10 @@ namespace NEventStore.Persistence.Sql
                     query.AddParameter(_dialect.BucketId, bucketId, DbType.AnsiString);
                     query.AddParameter(_dialect.StreamId, streamIdHash, DbType.AnsiString);
                     query.AddParameter(_dialect.StreamRevision, maxRevision);
-                    return query.ExecuteWithQuery(statement).Select(x => x.GetSnapshot(_serializer, streamId));
-                }).FirstOrDefault();
+                    return query.ExecuteWithQuery(statement) 
+                        
+                        .Select(x => x.GetSnapshot(_serializer, streamId));
+                }).ToEnumerable().FirstOrDefault();
         }
 
         public virtual bool AddSnapshot(ISnapshot snapshot)
@@ -237,9 +233,8 @@ namespace NEventStore.Persistence.Sql
             {
                 string statement = _dialect.GetCommitsFromCheckpoint;
                 query.AddParameter(_dialect.CheckpointNumber, checkpoint.LongValue);
-                return query.ExecutePagedQuery(statement, (q, r) => { })
-                    .Select(x => x.GetCommit(_serializer, _dialect));
-            }).ToObservable();
+                return query.ExecutePagedQuery(statement, (q, r) => { }).Select(x => x.GetCommit(_serializer, _dialect));
+            });
         }
 
         public bool IsDisposed
@@ -308,7 +303,7 @@ namespace NEventStore.Persistence.Sql
                 });
         }
 
-        protected virtual IEnumerable<T> ExecuteQuery<T>(Func<IDbStatement, IEnumerable<T>> query)
+        protected virtual IObservable<T> ExecuteQuery<T>(Func<IDbStatement, IObservable<T>> query)
         {
             ThrowWhenDisposed();
 
