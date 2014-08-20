@@ -60,7 +60,7 @@
                 var exampleSubscribers = new List<ExampleSubscriber>();
                 for (int i = 0; i < 20; i++)
                 {
-                    exampleSubscribers.Add(new ExampleSubscriber(client, total, (i + 1) * 10));
+                    exampleSubscribers.Add(new ExampleSubscriber(client, total, 0));
                 }
 
                 for (int i = 0; i < total; i++)

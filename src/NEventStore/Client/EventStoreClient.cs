@@ -9,14 +9,15 @@ namespace NEventStore.Client
 
     public class EventStoreClient : IDisposable
     {
+        public const int DefaultPollingInterval = 5000;
         private readonly IPersistStreams _persistStreams;
         private readonly int _pageSize;
-        private readonly ConcurrentDictionary<Guid, Subscriber> _subscribers = new ConcurrentDictionary<Guid, Subscriber>();
+        private readonly ConcurrentDictionary<Guid, Subscriber> _subscribers =
+            new ConcurrentDictionary<Guid, Subscriber>();
         private readonly InterlockedBoolean _isRetrieving = new InterlockedBoolean();
         private readonly IDisposable _retrieveTimer;
         private readonly IObservable<ClientStatistics> _statistics;
-
-        public const int DefaultPollingInterval = 5000;
+        private readonly LruCache<string, ICommit[]> _commitsCache = new LruCache<string, ICommit[]>(100); 
 
         public EventStoreClient(
             IPersistStreams persistStreams,
@@ -40,6 +41,10 @@ namespace NEventStore.Client
         public IObservable<ClientStatistics> Statistics
         {
             get { return _statistics; }
+        }
+        public void Dispose()
+        {
+            _retrieveTimer.Dispose();
         }
 
         public IDisposable Subscribe(string fromCheckpoint, Action<ICommit> onCommit)
@@ -69,11 +74,6 @@ namespace NEventStore.Client
             return subscriber;
         }
 
-        public void Dispose()
-        {
-            _retrieveTimer.Dispose();
-        }
-
         public void RetrieveNow()
         {
             if (_isRetrieving.CompareExchange(true, false))
@@ -85,16 +85,25 @@ namespace NEventStore.Client
             {
                 foreach (var subscriber in _subscribers.Values.ToArray())
                 {
-                    if (subscriber.QueueLength > _pageSize)
+                    if (subscriber.QueueLength >= _pageSize)
                     {
                         continue;
                     }
-                    
-                    // TODO add MRU cache
-                    ICommit[] commits = _persistStreams //Will be async
-                        .GetFrom(subscriber.Checkpoint)
-                        .Take(_pageSize)
-                        .ToArray();
+
+                    string key = subscriber.Checkpoint ?? "<null>";
+                    ICommit[] commits;
+                    if (!_commitsCache.TryGet(key, out commits))
+                    {
+                        commits = _persistStreams //Will be async
+                            .GetFrom(subscriber.Checkpoint)
+                            .Take(_pageSize)
+                            .ToArray();
+                        if (commits.Length == _pageSize)
+                        {
+                            // Only store full page prevents
+                            _commitsCache.Set(key, commits);
+                        }
+                    }
 
                     foreach (var commit in commits) 
                     {
@@ -162,8 +171,15 @@ namespace NEventStore.Client
                     ICommit commit;
                     while (_commits.TryDequeue(out commit))
                     {
-                        await _onCommit(commit);
-                        if (_commits.Count == _threshold)
+                        try
+                        {
+                            await _onCommit(commit);
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine(ex.ToString());
+                        }
+                        if (_commits.Count < _threshold)
                         {
                             _onThreashold();
                         }

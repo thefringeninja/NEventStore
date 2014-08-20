@@ -2,6 +2,7 @@
 {
     using System;
     using System.Collections.Generic;
+    using System.IO;
     using System.Linq;
     using System.Threading.Tasks;
     using MarkdownLog;
@@ -17,6 +18,10 @@
 
         private static async Task MainAsync()
         {
+            if (File.Exists("NEventStore.db"))
+            {
+                File.Delete("NEventStore.db");
+            }
             const int pageSize = 10;
             
             using (IStoreEvents store = Wireup.Init()
@@ -28,7 +33,7 @@
                 .UsingJsonSerialization()
                 .Build())
             {
-                const int streamTotal = 100;
+                const int streamTotal = 20;
                 const int commitsPerStream = 20;
                 const int totalCommits = streamTotal * commitsPerStream;
                 await SeedStore(store, streamTotal, commitsPerStream);
@@ -40,7 +45,7 @@
                         var exampleSubscribers = new List<ExampleSubscriber>();
                         for (int i = 0; i < 20; i++)
                         {
-                            int delay = (i + 1)*3;
+                            int delay = (i + 1) * 10;
                             exampleSubscribers.Add(new ExampleSubscriber(client, totalCommits, delay));
                         }
 
