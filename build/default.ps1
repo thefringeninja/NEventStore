@@ -41,26 +41,27 @@ task Test -depends RunUnitTests, RunPersistenceTests, RunSerializationTests
 
 task RunUnitTests {
 	"Unit Tests"
+
 	EnsureDirectory $output_directory
-	Invoke-XUnit -Path $output_directory -TestSpec '*NEventStore.Tests.dll' `
-    -SummaryPath $output_directory\unit_tests.xml `
-    -XUnitPath $xunit_path
+	RunXUnit -Spec '*NEventStore.Tests.dll'
+
 }
 
 task RunPersistenceTests -precondition { $runPersistenceTests } {
 	"Persistence Tests"
 	EnsureDirectory $output_directory
-	Invoke-XUnit -Path $output_directory -TestSpec '*Persistence.MsSql.Tests.dll','*Persistence.MySql.Tests.dll','*Persistence.Oracle.Tests.dll','*Persistence.PostgreSql.Tests.dll','*Persistence.Sqlite.Tests.dll' `
-    -SummaryPath $output_directory\persistence_tests.xml `
-    -XUnitPath $xunit_path
+	$engines = @("MsSql", "MySql", "Oracle", "PostgreSql", "Sqlite")
+	
+	$engines | % {
+		RunXUnit -Spec "*Persistence.$_.Tests.dll"
+	}
 }
 
 task RunSerializationTests {
 	"Serialization Tests"
 	EnsureDirectory $output_directory
-	Invoke-XUnit -Path $output_directory -TestSpec '*Serialization.*.Tests.dll' `
-    -SummaryPath $output_directory\serialization_tests.xml `
-    -XUnitPath $xunit_path
+	
+	RunXUnit -Spec "*Serialization.*.Tests.dll"
 }
 
 task Package -depends Build, PackageNEventStore {
@@ -99,5 +100,11 @@ function EnsureDirectory {
 	if(!(test-path $directory))
 	{
 		mkdir $directory
+	}
+}
+function RunXUnit {
+	param([string]$Spec)
+	Get-ChildItem "$output_directory\$Spec" | % {
+		exec { &$xunit_path $_ }
 	}
 }
