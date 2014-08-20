@@ -2,14 +2,12 @@ namespace NEventStore.Persistence.Sql
 {
     using System;
     using System.Configuration;
-    using System.Runtime.InteropServices.ComTypes;
     using System.Transactions;
     using NEventStore.Persistence.Sql.SqlDialects;
     using NEventStore.Serialization;
 
     public class SqlPersistenceFactory : IPersistenceFactory
     {
-        private const int DefaultPageSize = 128;
         private readonly IConnectionFactory _connectionFactory;
         private readonly ISqlDialect _dialect;
         private readonly TransactionScopeOption _scopeOption;
@@ -17,7 +15,7 @@ namespace NEventStore.Persistence.Sql
         private readonly IStreamIdHasher _streamIdHasher;
 
         public SqlPersistenceFactory(string connectionName, ISerialize serializer, ISqlDialect dialect = null)
-            : this(serializer, TransactionScopeOption.Suppress, null, DefaultPageSize)
+            : this(serializer, TransactionScopeOption.Suppress, null, SqlPersistenceWireup.DefaultPageSize)
         {
             _connectionFactory = new ConfigurationConnectionFactory(connectionName);
             _dialect = dialect ?? ResolveDialect(new ConfigurationConnectionFactory(connectionName).Settings);
@@ -29,7 +27,7 @@ namespace NEventStore.Persistence.Sql
             ISqlDialect dialect,
             IStreamIdHasher streamIdHasher = null,
             TransactionScopeOption scopeOption = TransactionScopeOption.Suppress,
-            int pageSize = DefaultPageSize)
+            int pageSize = SqlPersistenceWireup.DefaultPageSize)
             : this(serializer, scopeOption, streamIdHasher, pageSize)
         {
             if (dialect == null)

@@ -11,31 +11,29 @@ namespace NEventStore.Client
     {
         private readonly IPersistStreams _persistStreams;
         private readonly int _pageSize;
-        private readonly int _subscriberQueueThreshold;
         private readonly ConcurrentDictionary<Guid, Subscriber> _subscribers = new ConcurrentDictionary<Guid, Subscriber>();
-        private InterlockedBoolean _isRetrieving = new InterlockedBoolean();
+        private readonly InterlockedBoolean _isRetrieving = new InterlockedBoolean();
         private readonly IDisposable _retrieveTimer;
         private readonly IObservable<ClientStatistics> _statistics;
 
+        public const int DefaultPollingInterval = 5000;
+
         public EventStoreClient(
             IPersistStreams persistStreams,
-            int pollingIntervalMilliseconds = 5000,
-            int pageSize = 25,
-            int subscriberQueueThreshold = 10)
+            int pollingIntervalMilliseconds = DefaultPollingInterval,
+            int pageSize = SqlPersistenceWireup.DefaultPageSize)
         {
             _persistStreams = persistStreams;
             _pageSize = pageSize;
-            _subscriberQueueThreshold = subscriberQueueThreshold;
             _retrieveTimer = Observable
                 .Interval(TimeSpan.FromMilliseconds(pollingIntervalMilliseconds))
-                .Subscribe(_ => Retrieve());
+                .Subscribe(_ => RetrieveNow());
 
             _statistics = Observable.Interval(TimeSpan.FromSeconds(1)).Select(_ =>
             {
                 var subscrberInfos = _subscribers
                     .Select(pair => new SubscriberInfo(pair.Key, pair.Value.Checkpoint, pair.Value.QueueLength));
-                return new ClientStatistics(pollingIntervalMilliseconds, pageSize, _subscriberQueueThreshold,
-                    subscrberInfos);
+                return new ClientStatistics(pollingIntervalMilliseconds, pageSize, subscrberInfos);
             });
         }
 
@@ -46,23 +44,11 @@ namespace NEventStore.Client
 
         public IDisposable Subscribe(string fromCheckpoint, Action<ICommit> onCommit)
         {
-            var subscriberId = Guid.NewGuid();
-            var subscriber = new Subscriber(
-                fromCheckpoint,
-                commit =>
-                {
-                    onCommit(commit);
-                    return Task.FromResult(0);
-                },
-                _subscriberQueueThreshold,
-                Retrieve,
-                () =>
-                {
-                    Subscriber _;
-                    _subscribers.TryRemove(subscriberId, out _);
-                });
-            _subscribers.TryAdd(subscriberId, subscriber);
-            return subscriber;
+            return Subscribe(fromCheckpoint, commit =>
+            {
+                onCommit(commit);
+                return Task.FromResult(0);
+            });
         }
 
         public IDisposable Subscribe(string fromCheckpoint, Func<ICommit, Task> onCommit)
@@ -71,14 +57,15 @@ namespace NEventStore.Client
             var subscriber = new Subscriber(
                 fromCheckpoint,
                 onCommit,
-                _subscriberQueueThreshold,
-                Retrieve,
+                 _pageSize,
+                RetrieveNow,
                 () =>
                 {
                     Subscriber _;
                     _subscribers.TryRemove(subscriberId, out _);
                 });
             _subscribers.TryAdd(subscriberId, subscriber);
+            RetrieveNow();
             return subscriber;
         }
 
@@ -87,7 +74,7 @@ namespace NEventStore.Client
             _retrieveTimer.Dispose();
         }
 
-        private void Retrieve()
+        public void RetrieveNow()
         {
             if (_isRetrieving.CompareExchange(true, false))
             {
@@ -98,7 +85,7 @@ namespace NEventStore.Client
             {
                 foreach (var subscriber in _subscribers.Values.ToArray())
                 {
-                    if (subscriber.QueueLength > _subscriberQueueThreshold)
+                    if (subscriber.QueueLength > _pageSize)
                     {
                         continue;
                     }

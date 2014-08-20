@@ -9,7 +9,7 @@ namespace NEventStore
 
     public class SqlPersistenceWireup : PersistenceWireup
     {
-        private const int DefaultPageSize = 512;
+        public const int DefaultPageSize = 128;
         private static readonly ILog Logger = LogFactory.BuildLogger(typeof (SqlPersistenceWireup));
         private int _pageSize = DefaultPageSize;
 

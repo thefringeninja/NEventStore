@@ -53,7 +53,7 @@
         public async Task With_multiple_subscribers_that_process_at_different_rates_all_messages_should_be_received()
         {
             var eventStore = Wireup.Init().UsingInMemoryPersistence().Build();
-            using (var client = new EventStoreClient(eventStore.Advanced, 50, 10, 5))
+            using (var client = new EventStoreClient(eventStore.Advanced, 50, 10))
             {
                 const int total = 50;
                 var messagesStored = new List<string>();
