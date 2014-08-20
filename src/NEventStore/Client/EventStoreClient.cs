@@ -4,7 +4,6 @@ namespace NEventStore.Client
     using System.Collections.Concurrent;
     using System.Linq;
     using System.Reactive.Linq;
-    using System.Threading;
     using System.Threading.Tasks;
     using NEventStore.Persistence;
 
@@ -103,6 +102,8 @@ namespace NEventStore.Client
                     {
                         continue;
                     }
+                    
+                    // TODO add MRU cache
                     ICommit[] commits = _persistStreams //Will be async
                         .GetFrom(subscriber.Checkpoint)
                         .Take(_pageSize)
@@ -125,7 +126,7 @@ namespace NEventStore.Client
             private readonly Action _onThreashold;
             private readonly Action _onDispose;
             private readonly ConcurrentQueue<ICommit> _commits = new ConcurrentQueue<ICommit>();
-            private InterlockedBoolean _isPushing = new InterlockedBoolean();
+            private readonly InterlockedBoolean _isPushing = new InterlockedBoolean();
 
             public Subscriber(
                 string checkpoint,
