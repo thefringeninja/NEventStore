@@ -22,7 +22,7 @@
             {
                 File.Delete("NEventStore.db");
             }
-            const int pageSize = 10;
+            const int pageSize = 512;
             
             using (IStoreEvents store = Wireup.Init()
                 .LogToOutputWindow()
@@ -33,10 +33,13 @@
                 .UsingJsonSerialization()
                 .Build())
             {
-                const int streamTotal = 20;
+                const int streamTotal = 1000;
                 const int commitsPerStream = 20;
                 const int totalCommits = streamTotal * commitsPerStream;
                 await SeedStore(store, streamTotal, commitsPerStream);
+
+                Console.WriteLine("Press enter");
+                Console.ReadLine();
 
                 using (var client = new EventStoreClient(store.Advanced))
                 {
@@ -45,8 +48,8 @@
                         var exampleSubscribers = new List<ExampleSubscriber>();
                         for (int i = 0; i < 20; i++)
                         {
-                            int delay = (i + 1) * 10;
-                            exampleSubscribers.Add(new ExampleSubscriber(client, totalCommits, delay));
+                            //int delay = (i + 1) * 10;
+                            exampleSubscribers.Add(new ExampleSubscriber(client, totalCommits, 1));
                         }
 
                         await Task.WhenAll(exampleSubscribers.Select(s => s.OnMessagesReceived));
@@ -62,6 +65,7 @@
             Console.Write("Seeding event store...");
             Console.CursorVisible = false;
             int totalCommits = streamTotal * commitsPerStream;
+
             for (int i = 0; i < streamTotal; i++)
             {
                 var streamId = Guid.NewGuid();
