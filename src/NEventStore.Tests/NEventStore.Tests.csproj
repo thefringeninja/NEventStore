@@ -78,7 +78,6 @@
     <Compile Include="Client\PollingClientTests.cs" />
     <Compile Include="CommitHelper.cs" />
     <Compile Include="CommonDomain\IAggregateTests.cs" />
-    <Compile Include="CommonDomain\Persistence\IAggregatePersistenceTestHelpers.cs" />
     <Compile Include="CommonDomain\Persistence\IAggregatePersistenceTests.cs" />
     <Compile Include="CommonDomain\TestAggregate.cs" />
     <Compile Include="ConversionTests\EventUpconverterPipelineHookTests.cs" />

@@ -53,6 +53,7 @@
     <Compile Include="AccessSnapshotsExtensions.cs" />
     <Compile Include="Bucket.cs" />
     <Compile Include="Client\LruCache.cs" />
+    <Compile Include="CommonDomain\Core\DefaultConstructsAggregate.cs" />
     <Compile Include="InterlockedBoolean.cs" />
     <Compile Include="Client\EventStoreClient.cs" />
     <Compile Include="Client\ClientStatistics.cs" />

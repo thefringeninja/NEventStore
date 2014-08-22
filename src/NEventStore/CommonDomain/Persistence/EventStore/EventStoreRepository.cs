@@ -4,27 +4,35 @@ namespace CommonDomain.Persistence.EventStore
 	using System.Collections.Generic;
 	using System.Linq;
 	using System.Threading.Tasks;
+	using CommonDomain.Core;
 	using NEventStore;
 	using NEventStore.Persistence;
 
     public class EventStoreRepository : IRepository
 	{
 		private const string AggregateTypeHeader = "AggregateType";
-
 		private readonly IDetectConflicts _conflictDetector;
-
 		private readonly IStoreEvents _eventStore;
-
-		private readonly IConstructAggregates _factory;
-
+		private readonly IConstructAggregates _constructAggregates;
 		private readonly IDictionary<string, ISnapshot> _snapshots = new Dictionary<string, ISnapshot>();
-
 		private readonly IDictionary<string, IEventStream> _streams = new Dictionary<string, IEventStream>();
 
-		public EventStoreRepository(IStoreEvents eventStore, IConstructAggregates factory, IDetectConflicts conflictDetector)
+        public EventStoreRepository(IStoreEvents eventStore)
+            : this(eventStore, new AggregateFactory(), new ConflictDetector())
+        {}
+
+        public EventStoreRepository(IStoreEvents eventStore, IConstructAggregates constructAggregates)
+            : this(eventStore, constructAggregates, new ConflictDetector())
+        {}
+
+        public EventStoreRepository(IStoreEvents eventStore, IDetectConflicts conflictDetector)
+            : this(eventStore, new AggregateFactory(), conflictDetector)
+        {}
+
+		public EventStoreRepository(IStoreEvents eventStore, IConstructAggregates constructAggregates, IDetectConflicts conflictDetector)
 		{
 			_eventStore = eventStore;
-			_factory = factory;
+			_constructAggregates = constructAggregates;
 			_conflictDetector = conflictDetector;
 		}
 
@@ -134,7 +142,7 @@ namespace CommonDomain.Persistence.EventStore
 		private IAggregate GetAggregate<TAggregate>(ISnapshot snapshot, IEventStream stream)
 		{
 			IMemento memento = snapshot == null ? null : snapshot.Payload as IMemento;
-			return _factory.Build(typeof(TAggregate), stream.StreamId.ToGuid(), memento);
+			return _constructAggregates.Build(typeof(TAggregate), stream.StreamId.ToGuid(), memento);
 		}
 
 		private ISnapshot GetSnapshot(string bucketId, Guid id, int version)
