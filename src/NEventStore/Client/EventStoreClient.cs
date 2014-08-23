@@ -97,6 +97,7 @@ namespace NEventStore.Client
                         commits = _persistStreams //Will be async
                             .GetFrom(subscriber.Checkpoint)
                             .Take(_pageSize)
+                            .ToEnumerable()
                             .ToArray();
                         if (commits.Length == _pageSize)
                         {
