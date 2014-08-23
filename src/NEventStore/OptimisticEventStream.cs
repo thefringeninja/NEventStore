@@ -207,7 +207,7 @@ namespace NEventStore
             ICommit commit = await _persistence.Commit(attempt).NotOnCapturedContext();
 
             PopulateStream(StreamRevision + 1, attempt.StreamRevision, new[] { commit }.ToObservable());
-            ClearChanges();
+            await ClearChanges();
         }
 
         private CommitAttempt BuildCommitAttempt(Guid commitId)
