@@ -4,6 +4,7 @@ namespace NEventStore
     using System.Collections.Generic;
     using System.Diagnostics.CodeAnalysis;
     using System.Linq;
+    using System.Reactive.Linq;
     using System.Threading.Tasks;
     using NEventStore.Logging;
 
@@ -19,20 +20,23 @@ namespace NEventStore
         private readonly ICommitEvents _persistence;
         private readonly IDictionary<string, object> _uncommittedHeaders = new Dictionary<string, object>();
         private bool _disposed;
+        private TaskCompletionSource<bool> _populationSource;
 
         public OptimisticEventStream(string bucketId, string streamId, ICommitEvents persistence)
         {
             BucketId = bucketId;
             StreamId = streamId;
             _persistence = persistence;
+            _populationSource = new TaskCompletionSource<bool>();
+            _populationSource.SetResult(true);
         }
 
         public OptimisticEventStream(string bucketId, string streamId, ICommitEvents persistence, int minRevision, int maxRevision)
             : this(bucketId, streamId, persistence)
         {
-            IEnumerable<ICommit> commits = persistence.GetFrom(bucketId, streamId, minRevision, maxRevision);
+            IObservable<ICommit> commits = persistence.GetFrom(bucketId, streamId, minRevision, maxRevision);
             PopulateStream(minRevision, maxRevision, commits);
-
+            // TODO fix blocking issue
             if (minRevision > 0 && _committed.Count == 0)
             {
                 throw new StreamNotFoundException();
@@ -42,7 +46,7 @@ namespace NEventStore
         public OptimisticEventStream(ISnapshot snapshot, ICommitEvents persistence, int maxRevision)
             : this(snapshot.BucketId, snapshot.StreamId, persistence)
         {
-            IEnumerable<ICommit> commits = persistence.GetFrom(snapshot.BucketId, snapshot.StreamId, snapshot.StreamRevision, maxRevision);
+            IObservable<ICommit> commits = persistence.GetFrom(snapshot.BucketId, snapshot.StreamId, snapshot.StreamRevision, maxRevision);
             PopulateStream(snapshot.StreamRevision + 1, maxRevision, commits);
             StreamRevision = snapshot.StreamRevision + _committed.Count;
         }
@@ -92,7 +96,7 @@ namespace NEventStore
                 throw new DuplicateCommitException();
             }
 
-            if (!HasChanges())
+            if (!await HasChanges())
             {
                 return;
             }
@@ -104,23 +108,29 @@ namespace NEventStore
             catch (ConcurrencyException)
             {
                 Logger.Info(Resources.UnderlyingStreamHasChanged, StreamId);
-                IEnumerable<ICommit> commits = _persistence.GetFrom(BucketId, StreamId, StreamRevision + 1, int.MaxValue);
+                IObservable<ICommit> commits = _persistence.GetFrom(BucketId, StreamId, StreamRevision + 1, int.MaxValue);
                 PopulateStream(StreamRevision + 1, int.MaxValue, commits);
 
                 throw;
             }
         }
 
-        public void ClearChanges()
+        public async Task ClearChanges()
         {
+            await _populationSource.Task;
+
             Logger.Debug(Resources.ClearingUncommittedChanges, StreamId);
             _events.Clear();
             _uncommittedHeaders.Clear();
         }
 
-        private void PopulateStream(int minRevision, int maxRevision, IEnumerable<ICommit> commits)
+        private void PopulateStream(int minRevision, int maxRevision, IObservable<ICommit> commits)
         {
-            foreach (var commit in commits ?? Enumerable.Empty<ICommit>())
+            if (commits == null) return;
+
+            var source = new TaskCompletionSource<bool>();
+            
+            commits.Subscribe(commit =>
             {
                 Logger.Verbose(Resources.AddingCommitsToStream, commit.CommitId, commit.Events.Count, StreamId);
                 _identifiers.Add(commit.CommitId);
@@ -134,8 +144,13 @@ namespace NEventStore
 
                 CopyToCommittedHeaders(commit);
                 CopyToEvents(minRevision, maxRevision, currentRevision, commit);
-            }
+
+            }, source.SetException, () => source.SetResult(true));
+
+            _populationSource.TrySetCanceled();
+            _populationSource = source;
         }
+
 
         private void CopyToCommittedHeaders(ICommit commit)
         {
@@ -166,12 +181,14 @@ namespace NEventStore
             }
         }
 
-        private bool HasChanges()
+        private async Task<bool> HasChanges()
         {
             if (_disposed)
             {
                 throw new ObjectDisposedException(Resources.AlreadyDisposed);
             }
+
+            await _populationSource.Task;
 
             if (_events.Count > 0)
             {
@@ -189,7 +206,7 @@ namespace NEventStore
             Logger.Debug(Resources.PersistingCommit, commitId, StreamId);
             ICommit commit = await _persistence.Commit(attempt).NotOnCapturedContext();
 
-            PopulateStream(StreamRevision + 1, attempt.StreamRevision, new[] { commit });
+            PopulateStream(StreamRevision + 1, attempt.StreamRevision, new[] { commit }.ToObservable());
             ClearChanges();
         }
 

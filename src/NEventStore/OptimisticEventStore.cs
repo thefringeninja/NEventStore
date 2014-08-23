@@ -23,7 +23,7 @@ namespace NEventStore
             _persistence = new PipelineHooksAwarePersistanceDecorator(persistence, _pipelineHooks);
         }
 
-        public virtual IEnumerable<ICommit> GetFrom(string bucketId, string streamId, int minRevision, int maxRevision)
+        public virtual IObservable<ICommit> GetFrom(string bucketId, string streamId, int minRevision, int maxRevision)
         {
             return _persistence.GetFrom(bucketId, streamId, minRevision, maxRevision);
         }

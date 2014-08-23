@@ -177,7 +177,6 @@
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
     </Compile>
-    <Compile Include="Persistence\Sql\SqlDialects\PagedEnumerationCollection.cs" />
     <Compile Include="Persistence\Sql\SqlDialects\PostgreSqlDialect.cs" />
     <Compile Include="Persistence\Sql\SqlDialects\PostgreSqlStatements.Designer.cs">
       <DependentUpon>PostgreSqlStatements.resx</DependentUpon>

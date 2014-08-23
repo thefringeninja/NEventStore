@@ -4,6 +4,7 @@ namespace NEventStore.Persistence.InMemory
     using System.Collections.Concurrent;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Reactive.Linq;
     using System.Threading;
     using System.Threading.Tasks;
     using NEventStore.Logging;
@@ -26,19 +27,20 @@ namespace NEventStore.Persistence.InMemory
             GC.SuppressFinalize(this);
         }
 
-        public void Initialize()
+        public Task Initialize()
         {
             Logger.Info(Resources.InitializingEngine);
+            return Task.FromResult(true);
         }
 
-        public IEnumerable<ICommit> GetFrom(string bucketId, string streamId, int minRevision, int maxRevision)
+        public IObservable<ICommit> GetFrom(string bucketId, string streamId, int minRevision, int maxRevision)
         {
             ThrowWhenDisposed();
             Logger.Debug(Resources.GettingAllCommitsFromRevision, streamId, minRevision, maxRevision);
-            return this[bucketId].GetFrom(streamId, minRevision, maxRevision);
+            return this[bucketId].GetFrom(streamId, minRevision, maxRevision).ToObservable();
         }
 
-        public IEnumerable<ICommit> GetFrom(string checkpointToken = null)
+        public IObservable<ICommit> GetFrom(string checkpointToken = null)
         {
             checkpointToken = checkpointToken ?? "0";
             Logger.Debug(Resources.GettingAllCommitsFromCheckpoint, checkpointToken);
@@ -48,7 +50,7 @@ namespace NEventStore.Persistence.InMemory
                 .SelectMany(b => b.GetCommits())
                 .Where(c => c.Checkpoint.CompareTo(checkpoint) > 0)
                 .OrderBy(c => c.Checkpoint)
-                .ToArray();
+                .ToArray().ToObservable();
         }
 
         public ICheckpoint GetCheckpoint(string checkpointToken = null)
@@ -84,7 +86,7 @@ namespace NEventStore.Persistence.InMemory
             return this[snapshot.BucketId].AddSnapshot(snapshot);
         }
 
-        public void Purge()
+        public Task Purge()
         {
             ThrowWhenDisposed();
             Logger.Warn(Resources.PurgingStore);
@@ -92,28 +94,32 @@ namespace NEventStore.Persistence.InMemory
             {
                 bucket.Purge();
             }
+            return Task.FromResult(true);
         }
 
-        public void Purge(string bucketId)
+        public Task Purge(string bucketId)
         {
             Bucket _;
             _buckets.TryRemove(bucketId, out _);
+            return Task.FromResult(true);
         }
 
-        public void Drop()
+        public Task Drop()
         {
             _buckets.Clear();
+            return Task.FromResult(true);
         }
 
-        public void DeleteStream(string bucketId, string streamId)
+        public Task DeleteStream(string bucketId, string streamId)
         {
             Logger.Warn(Resources.DeletingStream, streamId, bucketId);
             Bucket bucket;
             if (!_buckets.TryGetValue(bucketId, out bucket))
             {
-                return;
+                return Task.FromResult(true);
             }
             bucket.DeleteStream(streamId);
+            return Task.FromResult(true);
         }
 
         public bool IsDisposed

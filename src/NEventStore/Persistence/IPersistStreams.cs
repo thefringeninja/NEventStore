@@ -2,6 +2,7 @@ namespace NEventStore.Persistence
 {
     using System;
     using System.Collections.Generic;
+    using System.Threading.Tasks;
 
     /// <summary>
     ///     Indicates the ability to adapt the underlying persistence infrastructure to behave like a stream of events.
@@ -21,14 +22,14 @@ namespace NEventStore.Persistence
         /// </summary>
         /// <exception cref="StorageException" />
         /// <exception cref="StorageUnavailableException" />
-        void Initialize();
+        Task Initialize();
 
         /// <summary>
         ///     Gets all commits after from the specified checkpoint. Use null to get from the beginning.
         /// </summary>
         /// <param name="checkpointToken">The checkpoint token.</param>
         /// <returns>An enumerable of Commits.</returns>
-        IEnumerable<ICommit> GetFrom(string checkpointToken = null);
+        IObservable<ICommit> GetFrom(string checkpointToken = null);
 
         /// <summary>
         /// Gets a checkpoint object that is comparable with other checkpoints from this storage engine.
@@ -40,26 +41,26 @@ namespace NEventStore.Persistence
         /// <summary>
         ///     Completely DESTROYS the contents of ANY and ALL streams that have been successfully persisted.  Use with caution.
         /// </summary>
-        void Purge();
+        Task Purge();
 
         /// <summary>
         ///     Completely DESTROYS the contents of ANY and ALL streams that have been successfully persisted
         ///     in the specified bucket.  Use with caution.
         /// </summary>
-        void Purge(string bucketId);
+        Task Purge(string bucketId);
 
         /// <summary>
         ///     Completely DESTROYS the contents and schema (if applicable) containting ANY and ALL streams that have been
         ///     successfully persisted
         ///     in the specified bucket.  Use with caution.
         /// </summary>
-        void Drop();
+        Task Drop();
 
         /// <summary>
         /// Deletes a stream.
         /// </summary>
         /// <param name="bucketId">The bucket Id from which the stream is to be deleted.</param>
         /// <param name="streamId">The stream Id of the stream that is to be deleted.</param>
-        void DeleteStream(string bucketId, string streamId);
+        Task DeleteStream(string bucketId, string streamId);
     }
 }

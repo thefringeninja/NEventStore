@@ -67,6 +67,6 @@ namespace NEventStore
         /// <summary>
         ///     Clears the uncommitted changes.
         /// </summary>
-        void ClearChanges();
+        Task ClearChanges();
     }
 }

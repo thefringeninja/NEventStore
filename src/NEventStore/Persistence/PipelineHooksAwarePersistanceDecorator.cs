@@ -3,6 +3,7 @@ namespace NEventStore.Persistence
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Reactive.Linq;
     using System.Threading.Tasks;
     using NEventStore.Logging;
 
@@ -31,7 +32,7 @@ namespace NEventStore.Persistence
             _original.Dispose();
         }
 
-        public IEnumerable<ICommit> GetFrom(string bucketId, string streamId, int minRevision, int maxRevision)
+        public IObservable<ICommit> GetFrom(string bucketId, string streamId, int minRevision, int maxRevision)
         {
             return ExecuteHooks(_original.GetFrom(bucketId, streamId, minRevision, maxRevision));
         }
@@ -56,12 +57,12 @@ namespace NEventStore.Persistence
             return _original.GetStreamsToSnapshot(bucketId, maxThreshold);
         }
 
-        public void Initialize()
+        public Task Initialize()
         {
-            _original.Initialize();
+            return _original.Initialize();
         }
 
-        public IEnumerable<ICommit> GetFrom(string checkpointToken = null)
+        public IObservable<ICommit> GetFrom(string checkpointToken = null)
         {
             return ExecuteHooks(_original.GetFrom(checkpointToken));
         }
@@ -71,32 +72,32 @@ namespace NEventStore.Persistence
             return _original.GetCheckpoint(checkpointToken);
         }
 
-        public void Purge()
+        public async Task Purge()
         {
-            _original.Purge();
+            await _original.Purge();
             foreach (var pipelineHook in _pipelineHooks)
             {
                 pipelineHook.OnPurge();
             }
         }
 
-        public void Purge(string bucketId)
+        public async Task Purge(string bucketId)
         {
-            _original.Purge(bucketId);
+            await _original.Purge(bucketId);
             foreach (var pipelineHook in _pipelineHooks)
             {
                 pipelineHook.OnPurge(bucketId);
             }
         }
 
-        public void Drop()
+        public Task Drop()
         {
-            _original.Drop();
+            return _original.Drop();
         }
 
-        public void DeleteStream(string bucketId, string streamId)
+        public async Task DeleteStream(string bucketId, string streamId)
         {
-            _original.DeleteStream(bucketId, streamId);
+            await _original.DeleteStream(bucketId, streamId);
             foreach (var pipelineHook in _pipelineHooks)
             {
                 pipelineHook.OnDeleteStream(bucketId, streamId);
@@ -108,26 +109,36 @@ namespace NEventStore.Persistence
             get { return _original.IsDisposed; }
         }
 
-        private IEnumerable<ICommit> ExecuteHooks(IEnumerable<ICommit> commits)
+        private ICommit Filter(ICommit commit)
         {
-            foreach (var commit in commits)
+            var filtered = commit;
+
+            foreach (var hook in _pipelineHooks)
             {
-                ICommit filtered = commit;
-                foreach (var hook in _pipelineHooks.Where(x => (filtered = x.Select(filtered)) == null))
-                {
-                    Logger.Info(Resources.PipelineHookSkippedCommit, hook.GetType(), commit.CommitId);
-                    break;
-                }
+                filtered = hook.Select(filtered);
 
                 if (filtered == null)
                 {
-                    Logger.Info(Resources.PipelineHookFilteredCommit);
-                }
-                else
-                {
-                    yield return filtered;
-                }
+                    Logger.Info(Resources.PipelineHookSkippedCommit, hook.GetType(), commit.CommitId);
+                    break;
+                };
             }
+
+            if (filtered != null)
+            {
+                return filtered;
+            }
+            
+            Logger.Info(Resources.PipelineHookFilteredCommit);
+            return null;
+        }
+
+        private IObservable<ICommit> ExecuteHooks(IObservable<ICommit> commits)
+        {
+            return (from commit in commits
+                let filtered = Filter(commit)
+                where filtered != null
+                select filtered);
         }
     }
 }

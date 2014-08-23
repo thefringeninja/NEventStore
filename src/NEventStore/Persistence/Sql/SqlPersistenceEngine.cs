@@ -6,6 +6,8 @@ namespace NEventStore.Persistence.Sql
     using System.Data.Common;
     using System.Globalization;
     using System.Linq;
+    using System.Reactive.Linq;
+    using System.Reactive.Threading.Tasks;
     using System.Threading;
     using System.Threading.Tasks;
     using System.Transactions;
@@ -83,37 +85,31 @@ namespace NEventStore.Persistence.Sql
             GC.SuppressFinalize(this);
         }
 
-        public virtual void Initialize()
+        public virtual Task Initialize()
         {
             if (Interlocked.Increment(ref _initialized) > 1)
             {
-                return;
+                return Task.FromResult(true);
             }
 
             Logger.Debug(Messages.InitializingStorage);
-            ExecuteCommand(statement => statement.ExecuteWithoutExceptions(_dialect.InitializeStorage));
+            return ExecuteCommand(statement => statement.ExecuteWithoutExceptions(_dialect.InitializeStorage));
         }
 
-        public virtual IEnumerable<ICommit> GetFrom(string bucketId, string streamId, int minRevision, int maxRevision)
+        public virtual IObservable<ICommit> GetFrom(string bucketId, string streamId, int minRevision, int maxRevision)
         {
             Logger.Debug(Messages.GettingAllCommitsBetween, streamId, minRevision, maxRevision);
             streamId = _streamIdHasher.GetHash(streamId);
             return ExecuteQuery(query =>
-                {
-                    string statement = _dialect.GetCommitsFromStartingRevision;
-                    query.AddParameter(_dialect.BucketId, bucketId, DbType.AnsiString);
-                    query.AddParameter(_dialect.StreamId, streamId, DbType.AnsiString);
-                    query.AddParameter(_dialect.StreamRevision, minRevision);
-                    query.AddParameter(_dialect.MaxStreamRevision, maxRevision);
-                    query.AddParameter(_dialect.CommitSequence, 0);
-                    return query
-                        .ExecutePagedQuery(statement, _dialect.NextPageDelegate)
-                        .Select(x => x.GetCommit(_serializer, _dialect));
-
-                   /* return query
-                        .ExecutePagedQuery(statement, (q, r) => {})
-                        .Select(x => x.GetCommit(_serializer, _dialect));*/
-                });
+            {
+                string statement = _dialect.GetCommitsFromStartingRevision;
+                query.AddParameter(_dialect.BucketId, bucketId, DbType.AnsiString);
+                query.AddParameter(_dialect.StreamId, streamId, DbType.AnsiString);
+                query.AddParameter(_dialect.StreamRevision, minRevision);
+                query.AddParameter(_dialect.MaxStreamRevision, maxRevision);
+                query.AddParameter(_dialect.CommitSequence, 0);
+                return query.ExecutePagedQuery(statement).Select(x => x.GetCommit(_serializer, _dialect));
+            });
         }
 
         public ICheckpoint GetCheckpoint(string checkpointToken)
@@ -159,11 +155,10 @@ namespace NEventStore.Persistence.Sql
                     string statement = _dialect.GetStreamsRequiringSnapshots;
                     query.AddParameter(_dialect.BucketId, bucketId, DbType.AnsiString);
                     query.AddParameter(_dialect.Threshold, maxThreshold);
-                    return
-                        query.ExecutePagedQuery(statement,
+                    return query.ExecutePagedQuery(statement,
                             (q, s) => q.SetParameter(_dialect.StreamId, _dialect.CoalesceParameterValue(s.StreamId()), DbType.AnsiString))
                             .Select(x => x.GetStreamToSnapshot());
-                });
+                }).ToEnumerable();
         }
 
         public virtual ISnapshot GetSnapshot(string bucketId, string streamId, int maxRevision)
@@ -176,8 +171,10 @@ namespace NEventStore.Persistence.Sql
                     query.AddParameter(_dialect.BucketId, bucketId, DbType.AnsiString);
                     query.AddParameter(_dialect.StreamId, streamIdHash, DbType.AnsiString);
                     query.AddParameter(_dialect.StreamRevision, maxRevision);
-                    return query.ExecuteWithQuery(statement).Select(x => x.GetSnapshot(_serializer, streamId));
-                }).FirstOrDefault();
+                    return query.ExecuteWithQuery(statement) 
+                        
+                        .Select(x => x.GetSnapshot(_serializer, streamId));
+                }).ToEnumerable().FirstOrDefault();
         }
 
         public virtual bool AddSnapshot(ISnapshot snapshot)
@@ -191,36 +188,36 @@ namespace NEventStore.Persistence.Sql
                     cmd.AddParameter(_dialect.StreamRevision, snapshot.StreamRevision);
                     _dialect.AddPayloadParamater(_connectionFactory, connection, cmd, _serializer.Serialize(snapshot.Payload)).Wait();
                     return cmd.ExecuteWithoutExceptions(_dialect.AppendSnapshotToCommit);
-                }) > 0;
+                }).Result > 0;
         }
 
-        public virtual void Purge()
+        public virtual Task Purge()
         {
             Logger.Warn(Messages.PurgingStorage);
-            ExecuteCommand(cmd => cmd.ExecuteNonQuery(_dialect.PurgeStorage));
+            return ExecuteCommand(cmd => cmd.ExecuteNonQuery(_dialect.PurgeStorage));
         }
 
-        public void Purge(string bucketId)
+        public Task Purge(string bucketId)
         {
             Logger.Warn(Messages.PurgingBucket, bucketId);
-            ExecuteCommand(cmd =>
+            return ExecuteCommand(cmd =>
                 {
                     cmd.AddParameter(_dialect.BucketId, bucketId, DbType.AnsiString);
                     return cmd.ExecuteNonQuery(_dialect.PurgeBucket);
                 });
         }
 
-        public void Drop()
+        public Task Drop()
         {
             Logger.Warn(Messages.DroppingTables);
-            ExecuteCommand(cmd => cmd.ExecuteNonQuery(_dialect.Drop));
+            return ExecuteCommand(cmd => cmd.ExecuteNonQuery(_dialect.Drop));
         }
 
-        public void DeleteStream(string bucketId, string streamId)
+        public Task DeleteStream(string bucketId, string streamId)
         {
             Logger.Warn(Messages.DeletingStream, streamId, bucketId);
             streamId = _streamIdHasher.GetHash(streamId);
-            ExecuteCommand(cmd =>
+            return ExecuteCommand(cmd =>
                 {
                     cmd.AddParameter(_dialect.BucketId, bucketId, DbType.AnsiString);
                     cmd.AddParameter(_dialect.StreamId, streamId, DbType.AnsiString);
@@ -228,7 +225,7 @@ namespace NEventStore.Persistence.Sql
                 });
         }
 
-        public IEnumerable<ICommit> GetFrom(string checkpointToken)
+        public IObservable<ICommit> GetFrom(string checkpointToken)
         {
             LongCheckpoint checkpoint = LongCheckpoint.Parse(checkpointToken);
             Logger.Debug(Messages.GettingAllCommitsFromCheckpoint, checkpointToken);
@@ -236,8 +233,7 @@ namespace NEventStore.Persistence.Sql
             {
                 string statement = _dialect.GetCommitsFromCheckpoint;
                 query.AddParameter(_dialect.CheckpointNumber, checkpoint.LongValue);
-                return query.ExecutePagedQuery(statement, (q, r) => { })
-                    .Select(x => x.GetCommit(_serializer, _dialect));
+                return query.ExecutePagedQuery(statement, (q, r) => { }).Select(x => x.GetCommit(_serializer, _dialect));
             });
         }
 
@@ -307,7 +303,7 @@ namespace NEventStore.Persistence.Sql
                 });
         }
 
-        protected virtual IEnumerable<T> ExecuteQuery<T>(Func<IDbStatement, IEnumerable<T>> query)
+        protected virtual IObservable<T> ExecuteQuery<T>(Func<IDbStatement, IObservable<T>> query)
         {
             ThrowWhenDisposed();
 
@@ -371,17 +367,17 @@ namespace NEventStore.Persistence.Sql
             throw new ObjectDisposedException(Messages.AlreadyDisposed);
         }
 
-        private T ExecuteCommand<T>(Func<IDbStatement, T> command)
+        private Task<T> ExecuteCommand<T>(Func<IDbStatement, T> command)
         {
             return ExecuteCommand((_, statement) => command(statement));
         }
 
-        private T ExecuteCommand<T>(Func<DbConnection, IDbStatement, T> command)
+        private async Task<T> ExecuteCommand<T>(Func<DbConnection, IDbStatement, T> command)
         {
             ThrowWhenDisposed();
 
             using (TransactionScope scope = OpenCommandScope())
-            using (DbConnection connection = _connectionFactory.Open().Result)
+            using (DbConnection connection = await _connectionFactory.Open())
             using (IDbTransaction transaction = _dialect.OpenTransaction(connection))
             using (IDbStatement statement = _dialect.BuildStatement(scope, connection, transaction))
             {

@@ -17,9 +17,9 @@ namespace NEventStore.Diagnostics
             _counters = new PerformanceCounters(instanceName);
         }
 
-        public void Initialize()
+        public Task Initialize()
         {
-            _persistence.Initialize();
+            return _persistence.Initialize();
         }
 
         public async Task<ICommit> Commit(CommitAttempt attempt)
@@ -41,12 +41,12 @@ namespace NEventStore.Diagnostics
             return _persistence.GetCheckpoint(checkpointToken);
         }
 
-        public IEnumerable<ICommit> GetFrom(string bucketId, string streamId, int minRevision, int maxRevision)
+        public IObservable<ICommit> GetFrom(string bucketId, string streamId, int minRevision, int maxRevision)
         {
             return _persistence.GetFrom(bucketId, streamId, minRevision, maxRevision);
         }
 
-        public IEnumerable<ICommit> GetFrom(string checkpointToken)
+        public IObservable<ICommit> GetFrom(string checkpointToken)
         {
             return _persistence.GetFrom(checkpointToken);
         }
@@ -72,24 +72,24 @@ namespace NEventStore.Diagnostics
             return _persistence.GetStreamsToSnapshot(bucketId, maxThreshold);
         }
 
-        public virtual void Purge()
+        public virtual Task Purge()
         {
-            _persistence.Purge();
+            return _persistence.Purge();
         }
 
-        public void Purge(string bucketId)
+        public Task Purge(string bucketId)
         {
-            _persistence.Purge(bucketId);
+            return _persistence.Purge(bucketId);
         }
 
-        public void Drop()
+        public Task Drop()
         {
-            _persistence.Drop();
+            return _persistence.Drop();
         }
 
-        public void DeleteStream(string bucketId, string streamId)
+        public Task DeleteStream(string bucketId, string streamId)
         {
-            _persistence.DeleteStream(bucketId, streamId);
+            return _persistence.DeleteStream(bucketId, streamId);
         }
 
         public bool IsDisposed
