@@ -51,9 +51,9 @@ namespace NEventStore.Diagnostics
             return _persistence.GetFrom(checkpointToken);
         }
 
-        public bool AddSnapshot(ISnapshot snapshot)
+        public async Task<bool> AddSnapshot(ISnapshot snapshot)
         {
-            bool result = _persistence.AddSnapshot(snapshot);
+            bool result = await _persistence.AddSnapshot(snapshot);
             if (result)
             {
                 _counters.CountSnapshot();

@@ -1,6 +1,7 @@
 namespace NEventStore
 {
     using System.Collections.Generic;
+    using System.Threading.Tasks;
     using NEventStore.Persistence;
 
     /// <summary>
@@ -29,7 +30,7 @@ namespace NEventStore
         /// <returns>If the snapshot was added, returns true; otherwise false.</returns>
         /// <exception cref="StorageException" />
         /// <exception cref="StorageUnavailableException" />
-        bool AddSnapshot(ISnapshot snapshot);
+        Task<bool> AddSnapshot(ISnapshot snapshot);
 
         /// <summary>
         ///     Gets identifiers for all streams whose head and last snapshot revisions differ by at least the threshold specified.

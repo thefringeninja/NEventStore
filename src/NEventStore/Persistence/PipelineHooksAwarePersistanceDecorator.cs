@@ -47,7 +47,7 @@ namespace NEventStore.Persistence
             return _original.GetSnapshot(bucketId, streamId, maxRevision);
         }
 
-        public bool AddSnapshot(ISnapshot snapshot)
+        public Task<bool> AddSnapshot(ISnapshot snapshot)
         {
             return _original.AddSnapshot(snapshot);
         }

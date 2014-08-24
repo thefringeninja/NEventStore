@@ -177,18 +177,18 @@ namespace NEventStore.Persistence.Sql
                 }).ToEnumerable().FirstOrDefault();
         }
 
-        public virtual bool AddSnapshot(ISnapshot snapshot)
+        public virtual async Task<bool> AddSnapshot(ISnapshot snapshot)
         {
             Logger.Debug(Messages.AddingSnapshot, snapshot.StreamId, snapshot.StreamRevision);
             string streamId = _streamIdHasher.GetHash(snapshot.StreamId);
-            return ExecuteCommand((connection, cmd) =>
+            return await ExecuteCommand((connection, cmd) =>
                 {
                     cmd.AddParameter(_dialect.BucketId, snapshot.BucketId, DbType.AnsiString);
                     cmd.AddParameter(_dialect.StreamId, streamId, DbType.AnsiString);
                     cmd.AddParameter(_dialect.StreamRevision, snapshot.StreamRevision);
                     _dialect.AddPayloadParamater(_connectionFactory, connection, cmd, _serializer.Serialize(snapshot.Payload)).Wait();
                     return cmd.ExecuteWithoutExceptions(_dialect.AppendSnapshotToCommit);
-                }).Result > 0;
+                }) > 0;
         }
 
         public virtual Task Purge()

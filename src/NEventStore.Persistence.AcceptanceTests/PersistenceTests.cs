@@ -329,9 +329,9 @@ namespace NEventStore.Persistence.AcceptanceTests
             return Persistence.CommitSingle(_streamId);
         }
 
-        protected override void Because()
+        protected override async Task BecauseAsync()
         {
-            _added = Persistence.AddSnapshot(_snapshot);
+            _added = await Persistence.AddSnapshot(_snapshot);
         }
 
         [Fact]

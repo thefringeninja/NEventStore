@@ -79,11 +79,11 @@ namespace NEventStore.Persistence.InMemory
             return this[bucketId].GetSnapshot(streamId, maxRevision);
         }
 
-        public bool AddSnapshot(ISnapshot snapshot)
+        public Task<bool> AddSnapshot(ISnapshot snapshot)
         {
             ThrowWhenDisposed();
             Logger.Debug(Resources.AddingSnapshot, snapshot.StreamId, snapshot.StreamRevision);
-            return this[snapshot.BucketId].AddSnapshot(snapshot);
+            return Task.FromResult(this[snapshot.BucketId].AddSnapshot(snapshot));
         }
 
         public Task Purge()
