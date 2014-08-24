@@ -42,7 +42,8 @@
                         }
                         messagesStored.Add(message);
                     }
-                    await allCommitsReceived.Task;
+
+                    await allCommitsReceived.Task.WithTimeout(10);
                 }
 
                 messagesRecieved.ShouldBeEquivalentTo(messagesStored);
@@ -73,7 +74,8 @@
                     }
                     messagesStored.Add(message);
                 }
-                await Task.WhenAll(exampleSubscribers.Select(s => s.OnMessagesReceived));
+
+                await Task.WhenAll(exampleSubscribers.Select(s => s.OnMessagesReceived)).WithTimeout(10);
 
                 foreach (var exampleSubscriber in exampleSubscribers)
                 {
