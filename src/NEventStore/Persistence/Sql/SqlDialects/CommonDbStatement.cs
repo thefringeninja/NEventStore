@@ -128,14 +128,11 @@ namespace NEventStore.Persistence.Sql.SqlDialects
 
         protected virtual IObservable<IDataRecord> ExecuteQuery(string queryText, NextPageDelegate nextPage, int pageSize)
         {
-            return Observable.Create<IDataRecord>(async (observer) =>
+            return Observable.Create<IDataRecord>(async observer =>
             {
                 int skip = 0;
-
                 Parameters.Add(_dialect.Skip, Tuple.Create((object)skip, (DbType?)null));
-
                 DbCommand command = BuildCommand(queryText);
-                
                 for (;;)
                 {
                     using (var reader = await command.ExecuteReaderAsync())
@@ -144,11 +141,8 @@ namespace NEventStore.Persistence.Sql.SqlDialects
                         while (await reader.ReadAsync())
                         {
                             IDataRecord record = reader;
-
                             observer.OnNext(record);
-
                             readRecords = true;
-
                             nextPage(command, record);
                         }
 
@@ -156,14 +150,12 @@ namespace NEventStore.Persistence.Sql.SqlDialects
                         {
                             break;
                         }
-
                         skip += pageSize;
-
                         command.SetParameter(_dialect.Skip, skip);
                     }
-
                 }
                 observer.OnCompleted();
+                Dispose();
             });
         }
 
