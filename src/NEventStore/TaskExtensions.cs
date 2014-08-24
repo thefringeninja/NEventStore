@@ -3,7 +3,7 @@ namespace System.Threading.Tasks
 {
     using System.Runtime.CompilerServices;
 
-    public static class TaskExtensions
+    internal static class TaskExtensions
     {
         public static ConfiguredTaskAwaitable<T> NotOnCapturedContext<T>(this Task<T> task)
         {
