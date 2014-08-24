@@ -452,7 +452,6 @@ namespace NEventStore.Persistence.AcceptanceTests
         }
     }
 
-    
     public class when_paging_over_all_commits_from_a_particular_checkpoint : PersistenceEngineConcern
     {
         private List<Guid> _committed;
@@ -741,7 +740,6 @@ namespace NEventStore.Persistence.AcceptanceTests
                     await stream.CommitChanges(Guid.NewGuid());
                 }
             }
-            ICommit[] commits = Persistence.GetFrom().ToEnumerable().ToArray();
             _commits = Persistence.GetFrom().ToEnumerable().ToArray();
         }
 
@@ -751,140 +749,6 @@ namespace NEventStore.Persistence.AcceptanceTests
             _commits.Length.Should().Be(_moreThanPageSize);
         }
     }
-
-    /* Commented out because it's not a scenario we're supporting
-     * public class TransactionConcern : SpecificationBase, IUseFixture<PersistenceEngineFixture>
-    {
-        private ICommit[] _commits;
-        private PersistenceEngineFixture _fixture;
-        private const int Loop = 2;
-        private const int StreamsPerTransaction = 20;
-
-        protected override void Because()
-        {
-            Parallel.For(0, Loop, i =>
-            {
-                var eventStore = new OptimisticEventStore(_fixture.Persistence, null);
-                using (var scope = new TransactionScope(TransactionScopeOption.Required,
-                    new TransactionOptions {IsolationLevel = IsolationLevel.Serializable}))
-                {
-                    int j;
-                    for (j = 0; j < StreamsPerTransaction; j++)
-                    {
-                        using (var stream = eventStore.OpenStream(i.ToString() + "-" + j.ToString()))
-                        {
-                            for (int k = 0; k < 10; k++)
-                            {
-                                stream.Add(new EventMessage {Body = "body" + k});
-                            }
-                            stream.CommitChanges(Guid.NewGuid());
-                        }
-                    }
-                    scope.Complete();
-                }
-            });
-            _commits = _fixture.Persistence.GetFrom(null).ToArray();
-        }
-
-        [Fact]
-        public void Should_have_expected_number_of_commits()
-        {
-            _commits.Length.Should().Be(Loop * StreamsPerTransaction);
-        }
-
-        /* [Fact]
-        public void ScopeCompleteAndSerializable()
-        {
-            int loop = 10;
-            using (var scope = new TransactionScope(
-                TransactionScopeOption.Required,
-                new TransactionOptions
-                {
-                    IsolationLevel = IsolationLevel.Serializable
-                }))
-            {
-                Parallel.For(0, loop, i =>
-                {
-                    Console.WriteLine("Creating stream {0} on thread {1}", i, Thread.CurrentThread.ManagedThreadId);
-                    var eventStore = new OptimisticEventStore(_fixture.Persistence, null);
-                    string streamId = i.ToString(CultureInfo.InvariantCulture);
-                    using (var stream = eventStore.OpenStream(streamId))
-                    {
-                        stream.Add(new EventMessage { Body = "body1" });
-                        stream.Add(new EventMessage { Body = "body2" });
-                        stream.CommitChanges(Guid.NewGuid());
-                    }
-                });
-                scope.Complete();
-            }
-            ICheckpoint checkpoint = _fixture.Persistence.GetCheckpoint();
-            ICommit[] commits = _fixture.Persistence.GetFrom(checkpoint.Value).ToArray();
-            commits.Length.Should().Be(loop);
-        }
-
-        [Fact]
-        public void ScopeNotCompleteAndReadCommitted()
-        {
-            int loop = 10;
-            using (var scope = new TransactionScope(
-                TransactionScopeOption.Required,
-                new TransactionOptions
-                {
-                    IsolationLevel = IsolationLevel.ReadCommitted
-                }))
-            {
-                Parallel.For(0, loop, i =>
-                {
-                    Console.WriteLine("Creating stream {0} on thread {1}", i, Thread.CurrentThread.ManagedThreadId);
-                    var eventStore = new OptimisticEventStore(_fixture.Persistence, null);
-                    string streamId = i.ToString(CultureInfo.InvariantCulture);
-                    using (var stream = eventStore.OpenStream(streamId))
-                    {
-                        stream.Add(new EventMessage { Body = "body1" });
-                        stream.Add(new EventMessage { Body = "body2" });
-                        stream.CommitChanges(Guid.NewGuid());
-                    }
-                });
-            }
-            ICheckpoint checkpoint = _fixture.Persistence.GetCheckpoint();
-            ICommit[] commits = _fixture.Persistence.GetFrom(checkpoint.Value).ToArray();
-            commits.Length.Should().Be(0);
-        }
-
-        [Fact]
-        public void ScopeNotCompleteAndSerializable()
-        {
-            int loop = 10;
-            using (var scope = new TransactionScope(
-                TransactionScopeOption.Required,
-                new TransactionOptions
-                {
-                    IsolationLevel = IsolationLevel.ReadCommitted
-                }))
-            {
-                Parallel.For(0, loop, i =>
-                {
-                    Console.WriteLine("Creating stream {0} on thread {1}", i, Thread.CurrentThread.ManagedThreadId);
-                    var eventStore = new OptimisticEventStore(_fixture.Persistence, null);
-                    string streamId = i.ToString(CultureInfo.InvariantCulture);
-                    using (var stream = eventStore.OpenStream(streamId))
-                    {
-                        stream.Add(new EventMessage { Body = "body1" });
-                        stream.Add(new EventMessage { Body = "body2" });
-                        stream.CommitChanges(Guid.NewGuid());
-                    }
-                });
-            }
-            ICheckpoint checkpoint = _fixture.Persistence.GetCheckpoint();
-            ICommit[] commits = _fixture.Persistence.GetFrom(checkpoint.Value).ToArray();
-            commits.Length.Should().Be(0);
-        }#1#
-
-        public void SetFixture(PersistenceEngineFixture data)
-        {
-            _fixture = data;
-        }
-    }*/
 
     public class when_a_payload_is_large : PersistenceEngineConcern
     {
