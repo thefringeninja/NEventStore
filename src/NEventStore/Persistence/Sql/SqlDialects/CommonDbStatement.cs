@@ -54,13 +54,13 @@ namespace NEventStore.Persistence.Sql.SqlDialects
             Parameters[name] = Tuple.Create(_dialect.CoalesceParameterValue(value), parameterType);
         }
 
-        public virtual Task<int> ExecuteNonQuery(string commandText)
+        public virtual async Task<int> ExecuteNonQuery(string commandText)
         {
             try
             {
                 using (DbCommand command = BuildCommand(commandText))
                 {
-                    return command.ExecuteNonQueryAsync();
+                    return await command.ExecuteNonQueryAsync();
                 }
             }
             catch (Exception e)
@@ -74,16 +74,16 @@ namespace NEventStore.Persistence.Sql.SqlDialects
             }
         }
 
-       public virtual Task<int> ExecuteWithoutExceptions(string commandText)
+       public virtual async Task<int> ExecuteWithoutExceptions(string commandText)
         {
             try
             {
-                return ExecuteNonQuery(commandText);
+                return await ExecuteNonQuery(commandText);
             }
             catch (Exception)
             {
                 Logger.Debug(Messages.ExceptionSuppressed);
-                return Task.FromResult(0);
+                return 0;
             }
         }
 
