@@ -1,6 +1,7 @@
 ﻿namespace NEventStore.Persistence.AcceptanceTests
 {
     using System;
+    using System.Threading.Tasks;
     using FluentAssertions;
     using NEventStore.Persistence.AcceptanceTests.BDD;
     using NEventStore.Persistence.Sql;
@@ -28,11 +29,11 @@
                 .Build();
         }
 
-        protected override void Cleanup()
+        protected override async Task CleanupAsync()
         {
             if (_eventStore != null)
             {
-                _eventStore.Advanced.Drop();
+                await _eventStore.Advanced.Drop();
                 _eventStore.Dispose();
             }
         }

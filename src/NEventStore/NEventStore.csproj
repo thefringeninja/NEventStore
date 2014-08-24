@@ -156,7 +156,6 @@
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
     </Compile>
-    <Compile Include="Persistence\Sql\SqlDialects\DelimitedDbStatement.cs" />
     <Compile Include="Persistence\Sql\SqlDialects\MsSqlDialect.cs" />
     <Compile Include="Persistence\Sql\SqlDialects\MsSqlStatements.Designer.cs">
       <DependentUpon>MsSqlStatements.resx</DependentUpon>

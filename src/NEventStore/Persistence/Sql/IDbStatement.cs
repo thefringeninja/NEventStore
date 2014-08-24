@@ -11,17 +11,11 @@ namespace NEventStore.Persistence.Sql
 
         void AddParameter(string name, object value, DbType? parameterType = null);
 
-        int ExecuteNonQuery(string commandText);
+        Task<int> ExecuteNonQuery(string commandText);
 
-        Task<int> ExecuteNonQueryAsync(string commandText);
+        Task<int> ExecuteWithoutExceptions(string commandText);
 
-        int ExecuteWithoutExceptions(string commandText);
-
-        Task<int> ExecuteWithoutExceptionsAsync(string commandText);
-
-        object ExecuteScalar(string commandText);
-
-        Task<object> ExecuteScalarAsync(string commandText);
+        Task<object> ExecuteScalar(string commandText);
 
         IObservable<IDataRecord> ExecuteWithQuery(string queryText);
 

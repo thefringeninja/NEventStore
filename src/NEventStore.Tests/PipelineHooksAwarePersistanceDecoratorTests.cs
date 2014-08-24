@@ -147,9 +147,9 @@ namespace NEventStore
                 pipelineHooks.Add(_hook);
             }
 
-            protected override void Because()
+            protected override Task BecauseAsync()
             {
-                Decorator.Purge();
+                return Decorator.Purge();
             }
 
             [Fact]

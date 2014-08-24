@@ -274,7 +274,7 @@ namespace NEventStore.Persistence.Sql
                 _dialect.AddPayloadParamater(_connectionFactory, connection, cmd, _serializer.Serialize(attempt.Events.ToList())).Wait();
                 OnPersistCommit(cmd, attempt);
                 await Task.Delay(1);
-                var checkpointNumber = (await cmd.ExecuteScalarAsync(_dialect.PersistCommit).NotOnCapturedContext()).ToLong();
+                var checkpointNumber = (await cmd.ExecuteScalar(_dialect.PersistCommit).NotOnCapturedContext()).ToLong();
                 ICommit commit = new Commit(
                     attempt.BucketId,
                     attempt.StreamId,
@@ -298,7 +298,7 @@ namespace NEventStore.Persistence.Sql
                     cmd.AddParameter(_dialect.StreamId, streamId, DbType.AnsiString);
                     cmd.AddParameter(_dialect.CommitId, attempt.CommitId);
                     cmd.AddParameter(_dialect.CommitSequence, attempt.CommitSequence);
-                    object value = await cmd.ExecuteScalarAsync(_dialect.DuplicateCommit);
+                    object value = await cmd.ExecuteScalar(_dialect.DuplicateCommit);
                     return (value is long ? (long) value : (int) value) > 0;
                 });
         }
@@ -367,12 +367,12 @@ namespace NEventStore.Persistence.Sql
             throw new ObjectDisposedException(Messages.AlreadyDisposed);
         }
 
-        private Task<T> ExecuteCommand<T>(Func<IDbStatement, T> command)
+        private Task<T> ExecuteCommand<T>(Func<IDbStatement, Task<T>> command)
         {
             return ExecuteCommand((_, statement) => command(statement));
         }
 
-        private async Task<T> ExecuteCommand<T>(Func<DbConnection, IDbStatement, T> command)
+        private async Task<T> ExecuteCommand<T>(Func<DbConnection, IDbStatement, Task<T>> command)
         {
             ThrowWhenDisposed();
 
@@ -384,7 +384,7 @@ namespace NEventStore.Persistence.Sql
                 try
                 {
                     Logger.Verbose(Messages.ExecutingCommand);
-                    T rowsAffected = command(connection, statement);
+                    T rowsAffected = await command(connection, statement);
                     Logger.Verbose(Messages.CommandExecuted, rowsAffected);
 
                     if (transaction != null)

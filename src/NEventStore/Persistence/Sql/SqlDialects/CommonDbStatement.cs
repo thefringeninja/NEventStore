@@ -4,7 +4,6 @@ namespace NEventStore.Persistence.Sql.SqlDialects
     using System.Collections.Generic;
     using System.Data;
     using System.Data.Common;
-    using System.Reactive;
     using System.Reactive.Linq;
     using System.Threading.Tasks;
     using System.Transactions;
@@ -55,12 +54,14 @@ namespace NEventStore.Persistence.Sql.SqlDialects
             Parameters[name] = Tuple.Create(_dialect.CoalesceParameterValue(value), parameterType);
         }
 
-        public Task<int> ExecuteNonQueryAsync(string commandText)
+        public virtual Task<int> ExecuteNonQuery(string commandText)
         {
             try
             {
                 using (DbCommand command = BuildCommand(commandText))
+                {
                     return command.ExecuteNonQueryAsync();
+                }
             }
             catch (Exception e)
             {
@@ -73,7 +74,7 @@ namespace NEventStore.Persistence.Sql.SqlDialects
             }
         }
 
-        public virtual int ExecuteWithoutExceptions(string commandText)
+       public virtual Task<int> ExecuteWithoutExceptions(string commandText)
         {
             try
             {
@@ -82,59 +83,11 @@ namespace NEventStore.Persistence.Sql.SqlDialects
             catch (Exception)
             {
                 Logger.Debug(Messages.ExceptionSuppressed);
-                return 0;
-            }
-        }
-
-        public Task<int> ExecuteWithoutExceptionsAsync(string commandText)
-        {
-            try
-            {
-                return ExecuteNonQueryAsync(commandText);
-            }
-            catch (Exception)
-            {
-                Logger.Debug(Messages.ExceptionSuppressed);
                 return Task.FromResult(0);
             }
         }
 
-        public virtual int ExecuteNonQuery(string commandText)
-        {
-            try
-            {
-                using (IDbCommand command = BuildCommand(commandText))
-                    return command.ExecuteNonQuery();
-            }
-            catch (Exception e)
-            {
-                if (_dialect.IsDuplicate(e))
-                {
-                    throw new UniqueKeyViolationException(e.Message, e);
-                }
-
-                throw;
-            }
-        }
-
-        public virtual object ExecuteScalar(string commandText)
-        {
-            try
-            {
-                using (DbCommand command = BuildCommand(commandText))
-                    return command.ExecuteScalar();
-            }
-            catch (Exception e)
-            {
-                if (_dialect.IsDuplicate(e))
-                {
-                    throw new UniqueKeyViolationException(e.Message, e);
-                }
-                throw;
-            }
-        }
-
-        public async Task<object> ExecuteScalarAsync(string commandText)
+        public async Task<object> ExecuteScalar(string commandText)
         {
             try
             {

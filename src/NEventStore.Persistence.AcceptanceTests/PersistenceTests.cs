@@ -31,9 +31,9 @@ namespace NEventStore.Persistence.AcceptanceTests
             return Persistence.Commit(attempt);
         }
 
-        protected override void Because()
+        protected override async Task BecauseAsync()
         {
-            _persisted = Persistence.GetFrom(_streamId, 0, int.MaxValue).First();
+            _persisted = await Persistence.GetFrom(_streamId, 0, int.MaxValue).FirstAsync();
         }
 
         [Fact]
@@ -516,9 +516,9 @@ namespace NEventStore.Persistence.AcceptanceTests
             return Persistence.CommitSingle();
         }
 
-        protected override void Because()
+        protected override Task BecauseAsync()
         {
-            Persistence.Purge();
+            return Persistence.Purge();
         }
 
         [Fact]
@@ -711,9 +711,9 @@ namespace NEventStore.Persistence.AcceptanceTests
             await Persistence.Commit(_streamId.BuildAttempt(bucketId: _bucketBId));
         }
 
-        protected override void Because()
+        protected override Task BecauseAsync()
         {
-            Persistence.Purge();
+            return Persistence.Purge();
         }
 
         [Fact]
@@ -980,7 +980,7 @@ namespace NEventStore.Persistence.AcceptanceTests
         {
             if (_persistence != null && !_persistence.IsDisposed)
             {
-                _persistence.Drop().Wait();
+                _persistence.Drop().Wait(TimeSpan.FromSeconds(5));
                 _persistence.Dispose();
             }
         }

@@ -4,6 +4,7 @@ namespace NEventStore.Persistence.Sql.SqlDialects
     using System.Data;
     using System.Data.Common;
     using System.Reflection;
+    using System.Threading.Tasks;
     using System.Transactions;
     using NEventStore.Persistence.Sql;
 
@@ -35,13 +36,13 @@ namespace NEventStore.Persistence.Sql.SqlDialects
             }
         }
 
-        public override int ExecuteNonQuery(string commandText)
+        public override Task<int> ExecuteNonQuery(string commandText)
         {
             try
             {
                 using (var command = BuildCommand(commandText))
-                { 
-                    return command.ExecuteNonQuery();
+                {
+                    return command.ExecuteNonQueryAsync();
                 }
             }
             catch (Exception e)

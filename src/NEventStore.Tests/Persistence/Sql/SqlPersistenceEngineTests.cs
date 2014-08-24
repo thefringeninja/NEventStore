@@ -26,7 +26,7 @@
                 A<DbConnection>.Ignored,
                 A<IDbTransaction>.Ignored))
                 .Returns(fakeDbStatement);
-            A.CallTo(() => fakeDbStatement.ExecuteScalarAsync(A<string>.Ignored)).Returns(1);
+            A.CallTo(() => fakeDbStatement.ExecuteScalar(A<string>.Ignored)).Returns(1);
             var fakeSerialize = A.Fake<ISerialize>();
             _sqlPersistenceEngine = new InheritedSqlPersistenceEngine(fakeConnectionFactory, fakeSqlDialect, fakeSerialize,TransactionScopeOption.Suppress, 128);
         }
