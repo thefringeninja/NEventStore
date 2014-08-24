@@ -92,7 +92,7 @@ namespace NEventStore.Client
 
                     string key = subscriber.Checkpoint ?? "<null>";
                     ICommit[] commits;
-                    /*if (!_commitsCache.TryGet(key, out commits))
+                    if (!_commitsCache.TryGet(key, out commits))
                     {
                         commits = _persistStreams //Will be async
                             .GetFrom(subscriber.Checkpoint)
@@ -104,9 +104,7 @@ namespace NEventStore.Client
                             // Only store full page prevents
                             _commitsCache.Set(key, commits);
                         }
-                    }*/
-
-                    throw new NotImplementedException();
+                    }
 
                     foreach (var commit in commits) 
                     {
