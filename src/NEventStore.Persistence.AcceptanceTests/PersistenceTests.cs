@@ -217,54 +217,28 @@ namespace NEventStore.Persistence.AcceptanceTests
     // to avoid concurrency issues
     public class when_committing_a_stream_with_the_same_sequence : PersistenceEngineConcern
     {
-        private CommitAttempt _attempt1, _attempt2;
+        private CommitAttempt _successfulAttempt, _failedAttempt;
         private Exception _thrown;
 
         protected override Task ContextAsync()
         {
             string streamId = Guid.NewGuid().ToString();
-            _attempt1 = streamId.BuildAttempt();
-            _attempt2 = new CommitAttempt(
-                _attempt1.BucketId,         // <--- Same bucket
-                _attempt1.StreamId,         // <--- Same stream it
-                _attempt1.StreamRevision +10,
+            _successfulAttempt = streamId.BuildAttempt();
+            _failedAttempt = new CommitAttempt(
+                _successfulAttempt.BucketId,         // <--- Same bucket
+                _successfulAttempt.StreamId,         // <--- Same stream id
+                _successfulAttempt.StreamRevision +10,
                 Guid.NewGuid(),
-                _attempt1.CommitSequence,   // <--- Same commit seq
+                _successfulAttempt.CommitSequence,   // <--- Same commit seq
                 DateTime.UtcNow,
-                _attempt1.Headers,
+                _successfulAttempt.Headers,
                 new[]
                 {
                     new EventMessage(){ Body = new ExtensionMethods.SomeDomainEvent {SomeProperty = "Test 3"}}
                 }
             );
 
-            return Persistence.Commit(_attempt1);
-        }
-
-        protected override async Task BecauseAsync()
-        {
-            _thrown = await Catch.Exception(() => Persistence.Commit(_attempt2));
-        }
-
-        [Fact]
-        public void should_throw_a_ConcurrencyException()
-        {
-            _thrown.Should().BeOfType<ConcurrencyException>();
-        }
-    }
-
-    //TODO:This test looks exactly like the one above. What are we trying to prove?
-    public class when_attempting_to_overwrite_a_committed_sequence : PersistenceEngineConcern
-    {
-        private CommitAttempt _failedAttempt;
-        private Exception _thrown;
-
-        protected override async Task ContextAsync()
-        {
-            string streamId = Guid.NewGuid().ToString();
-            CommitAttempt successfulAttempt = streamId.BuildAttempt();
-            await Persistence.Commit(successfulAttempt);
-            _failedAttempt = streamId.BuildAttempt();
+            return Persistence.Commit(_successfulAttempt);
         }
 
         protected override async Task BecauseAsync()
