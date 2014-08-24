@@ -38,12 +38,12 @@
             }
         }
 
-        protected override void Because()
+        protected override Task BecauseAsync()
         {
             using (var stream = _eventStore.OpenStream(Guid.NewGuid()))
             {
                 stream.Add(new EventMessage{ Body = "Message" });
-                stream.CommitChanges(Guid.NewGuid());
+                return stream.CommitChanges(Guid.NewGuid());
             }
         }
 
