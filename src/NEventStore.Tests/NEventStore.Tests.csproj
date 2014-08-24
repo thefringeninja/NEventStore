@@ -76,7 +76,6 @@
     <Compile Include="Client\EventStoreClientTests.cs" />
     <Compile Include="DefaultSerializationWireupTests.cs" />
     <Compile Include="Client\PollingClientTests.cs" />
-    <Compile Include="CommitHelper.cs" />
     <Compile Include="CommonDomain\IAggregateTests.cs" />
     <Compile Include="CommonDomain\Persistence\IAggregatePersistenceTests.cs" />
     <Compile Include="CommonDomain\TestAggregate.cs" />
