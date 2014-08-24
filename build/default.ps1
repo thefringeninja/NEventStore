@@ -1,13 +1,12 @@
 properties {
     $base_directory = Resolve-Path ..
-    $publish_directory = "$base_directory\publish-net45"
+    $publish_directory = "$base_directory\publish-net451"
     $build_directory = "$base_directory\build"
     $src_directory = "$base_directory\src"
     $output_directory = "$base_directory\output"
     $packages_directory = "$src_directory\packages"
     $sln_file = "$src_directory\NEventStore.sln"
     $target_config = "Release"
-    $framework_version = "v4.0"
     $build_number = 0
     $assemblyInfoFilePath = "$src_directory\VersionAssemblyInfo.cs"
 
@@ -69,8 +68,7 @@ task Package -depends Build, PackageNEventStore {
 
 task PackageNEventStore -depends Clean, Compile {
 	mkdir "$publish_directory\bin" | out-null
-	$target_directory = "$src_directory/$output_directory/$target_config"
-	"H1"
+	$target_directory = "$output_directory"
 	Merge-Assemblies -outputFile "$publish_directory/bin/NEventStore.dll" -files @(
 		"$target_directory/NEventStore.dll",
 		"$target_directory/System.Reactive.Interfaces.dll",
@@ -78,7 +76,6 @@ task PackageNEventStore -depends Clean, Compile {
 		"$target_directory/System.Reactive.Linq.dll",
 		"$target_directory/Newtonsoft.Json.dll"
 	)
-	"H2"
 }
 
 task Clean {
