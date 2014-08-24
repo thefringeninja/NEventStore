@@ -31,11 +31,6 @@ namespace NEventStore.Diagnostics
             return commit;
         }
 
-        public ICheckpoint ParseCheckpoint(string checkpointValue)
-        {
-            return LongCheckpoint.Parse(checkpointValue);
-        }
-
         public ICheckpoint GetCheckpoint(string checkpointToken = null)
         {
             return _persistence.GetCheckpoint(checkpointToken);
