@@ -819,7 +819,23 @@ namespace NEventStore.Persistence.AcceptanceTests
         {
             if (_persistence != null && !_persistence.IsDisposed)
             {
-                _persistence.Drop().Wait(TimeSpan.FromSeconds(5));
+                int attempts = 0;
+                bool dropped = false;
+                
+                while (!dropped)
+                {
+                    try
+                    {
+                        attempts++;
+                        _persistence.Drop().Wait(TimeSpan.FromSeconds(5));
+                        dropped = true;
+                    }
+                    catch (Exception ex)
+                    {
+                        if (attempts > 5) throw;
+                    }
+                }
+                
                 _persistence.Dispose();
             }
         }
