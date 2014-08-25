@@ -4,7 +4,6 @@ namespace NEventStore.Persistence.Sql.SqlDialects
     using System.Data;
     using System.Data.Common;
     using System.Reflection;
-    using System.Threading.Tasks;
     using System.Transactions;
     using NEventStore.Persistence.Sql;
 
@@ -33,26 +32,6 @@ namespace NEventStore.Persistence.Sql.SqlDialects
             else
             {
                 base.AddParameter(name, value, dbType);
-            }
-        }
-
-        public override Task<int> ExecuteNonQuery(string commandText)
-        {
-            try
-            {
-                using (var command = BuildCommand(commandText))
-                {
-                    return command.ExecuteNonQueryAsync();
-                }
-            }
-            catch (Exception e)
-            {
-                if (Dialect.IsDuplicate(e))
-                {
-                    throw new UniqueKeyViolationException(e.Message, e);
-                }
-
-                throw;
             }
         }
 
