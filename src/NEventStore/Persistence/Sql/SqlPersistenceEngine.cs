@@ -181,14 +181,15 @@ namespace NEventStore.Persistence.Sql
         {
             Logger.Debug(Messages.AddingSnapshot, snapshot.StreamId, snapshot.StreamRevision);
             string streamId = _streamIdHasher.GetHash(snapshot.StreamId);
-            return await ExecuteCommand((connection, cmd) =>
-                {
-                    cmd.AddParameter(_dialect.BucketId, snapshot.BucketId, DbType.AnsiString);
-                    cmd.AddParameter(_dialect.StreamId, streamId, DbType.AnsiString);
-                    cmd.AddParameter(_dialect.StreamRevision, snapshot.StreamRevision);
-                    _dialect.AddPayloadParamater(_connectionFactory, connection, cmd, _serializer.Serialize(snapshot.Payload)).Wait();
-                    return cmd.ExecuteWithoutExceptions(_dialect.AppendSnapshotToCommit);
-                }) > 0;
+            var rowsAffected = await ExecuteCommand(async (connection, cmd) =>
+            {
+                cmd.AddParameter(_dialect.BucketId, snapshot.BucketId, DbType.AnsiString);
+                cmd.AddParameter(_dialect.StreamId, streamId, DbType.AnsiString);
+                cmd.AddParameter(_dialect.StreamRevision, snapshot.StreamRevision);
+                await _dialect.AddPayloadParamater(_connectionFactory, connection, cmd, _serializer.Serialize(snapshot.Payload));
+                return await cmd.ExecuteWithoutExceptions(_dialect.AppendSnapshotToCommit);
+            });
+            return rowsAffected > 0;
         }
 
         public virtual Task Purge()
@@ -273,7 +274,6 @@ namespace NEventStore.Persistence.Sql
                 cmd.AddParameter(_dialect.Headers, _serializer.Serialize(attempt.Headers));
                 _dialect.AddPayloadParamater(_connectionFactory, connection, cmd, _serializer.Serialize(attempt.Events.ToList())).Wait();
                 OnPersistCommit(cmd, attempt);
-                await Task.Delay(1);
                 var checkpointNumber = (await cmd.ExecuteScalar(_dialect.PersistCommit).NotOnCapturedContext()).ToLong();
                 ICommit commit = new Commit(
                     attempt.BucketId,
