@@ -361,9 +361,9 @@ namespace NEventStore.Persistence.AcceptanceTests
             ICommit commit2 = await Persistence.CommitNext(commit1); // rev 3-4
             await Persistence.CommitNext(commit2); // rev 5-6
 
-            Persistence.AddSnapshot(new Snapshot(_streamId, 1, string.Empty)); //Too far back
-            Persistence.AddSnapshot(_correct = new Snapshot(_streamId, 3, "Snapshot"));
-            Persistence.AddSnapshot(_tooFarForward = new Snapshot(_streamId, 5, string.Empty));
+            await Persistence.AddSnapshot(new Snapshot(_streamId, 1, string.Empty)); //Too far back
+            await Persistence.AddSnapshot(_correct = new Snapshot(_streamId, 3, "Snapshot"));
+            await Persistence.AddSnapshot(_tooFarForward = new Snapshot(_streamId, 5, string.Empty));
         }
 
         protected override void Because()
@@ -430,7 +430,7 @@ namespace NEventStore.Persistence.AcceptanceTests
             _streamId = Guid.NewGuid().ToString();
             _oldest = await Persistence.CommitSingle(_streamId);
             _oldest2 = await Persistence.CommitNext(_oldest);
-            Persistence.AddSnapshot(new Snapshot(_streamId, _oldest2.StreamRevision, SnapshotData));
+            await Persistence.AddSnapshot(new Snapshot(_streamId, _oldest2.StreamRevision, SnapshotData));
         }
 
         protected override Task BecauseAsync()
