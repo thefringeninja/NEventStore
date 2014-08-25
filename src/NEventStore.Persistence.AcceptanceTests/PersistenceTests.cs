@@ -767,8 +767,9 @@ namespace NEventStore.Persistence.AcceptanceTests
                 new List<EventMessage> { new EventMessage { Body = new string('a', bodyLength) } });
             await Persistence.Commit(attempt);
 
-            ICommit commits = Persistence.GetFrom().ToEnumerable().Single();
-            commits.Events.Single().Body.ToString().Length.Should().Be(bodyLength);
+            var commit = await Persistence.GetFrom().SingleAsync();
+
+            commit.Events.Single().Body.ToString().Length.Should().Be(bodyLength);
         }
     }
 
