@@ -194,9 +194,9 @@ namespace NEventStore
                 pipelineHooks.Add(_hook);
             }
 
-            protected override void Because()
+            protected override Task BecauseAsync()
             {
-                Decorator.DeleteStream(_bucketId, _streamId);
+                return Decorator.DeleteStream(_bucketId, _streamId);
             }
 
             [Fact]

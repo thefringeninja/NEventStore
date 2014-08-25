@@ -405,9 +405,9 @@ namespace NEventStore.Persistence.AcceptanceTests
             _newest = await Persistence.CommitNext(_oldest2);
         }
 
-        protected override void Because()
+        protected override Task BecauseAsync()
         {
-            Persistence.AddSnapshot(new Snapshot(_streamId, _newest.StreamRevision, SnapshotData));
+            return Persistence.AddSnapshot(new Snapshot(_streamId, _newest.StreamRevision, SnapshotData));
         }
 
         [Fact]
