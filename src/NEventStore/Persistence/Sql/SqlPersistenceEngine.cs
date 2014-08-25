@@ -6,6 +6,7 @@ namespace NEventStore.Persistence.Sql
     using System.Data.Common;
     using System.Globalization;
     using System.Linq;
+    using System.Reactive;
     using System.Reactive.Linq;
     using System.Reactive.Threading.Tasks;
     using System.Threading;
@@ -311,44 +312,56 @@ namespace NEventStore.Persistence.Sql
             DbConnection connection = null;
             IDbTransaction transaction = null;
             IDbStatement statement = null;
+            IDisposable subscription = null;
 
-            try
+            return Observable.Create<T>(async observer =>
             {
-                connection = _connectionFactory.Open().Result;
-                transaction = _dialect.OpenTransaction(connection);
-                statement = _dialect.BuildStatement(scope, connection, transaction);
-                statement.PageSize = _pageSize;
+                try
+                {
+                    connection = await _connectionFactory.Open();
+                    transaction = _dialect.OpenTransaction(connection);
+                    statement = _dialect.BuildStatement(scope, connection, transaction);
+                    statement.PageSize = _pageSize;
 
-                Logger.Verbose(Messages.ExecutingQuery);
-                return query(statement);
-            }
-            catch (Exception e)
-            {
-                if (statement != null)
-                {
-                    statement.Dispose();
+                    Logger.Verbose(Messages.ExecutingQuery);
+                    
+                    var observable = query(statement);
+            
+                    subscription = observable.Subscribe(observer);
                 }
-                if (transaction != null)
+                catch (Exception e)
                 {
-                    transaction.Dispose();
-                }
-                if (connection != null)
-                {
-                    connection.Dispose();
-                }
-                if (scope != null)
-                {
-                    scope.Dispose();
+                    if (statement != null)
+                    {
+                        statement.Dispose();
+                    }
+                    if (transaction != null)
+                    {
+                        transaction.Dispose();
+                    }
+                    if (connection != null)
+                    {
+                        connection.Dispose();
+                    }
+                    if (scope != null)
+                    {
+                        scope.Dispose();
+                    }
+                    if (subscription != null)
+                    {
+                        subscription.Dispose();
+                    }
+
+                    Logger.Debug(Messages.StorageThrewException, e.GetType());
+                    if (e is StorageUnavailableException)
+                    {
+                        throw;
+                    }
+
+                    throw new StorageException(e.Message, e);
                 }
 
-                Logger.Debug(Messages.StorageThrewException, e.GetType());
-                if (e is StorageUnavailableException)
-                {
-                    throw;
-                }
-
-                throw new StorageException(e.Message, e);
-            }
+            });
         }
 
         protected virtual TransactionScope OpenQueryScope()
