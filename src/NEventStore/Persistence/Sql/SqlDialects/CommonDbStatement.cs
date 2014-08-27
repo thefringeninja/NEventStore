@@ -42,8 +42,9 @@ namespace NEventStore.Persistence.Sql.SqlDialects
 
         public void Dispose()
         {
-            Dispose(true);
-            GC.SuppressFinalize(this);
+            Logger.Verbose(Messages.DisposingStatement);
+
+            Close();
         }
 
         public virtual int PageSize { get; set; }
@@ -155,28 +156,8 @@ namespace NEventStore.Persistence.Sql.SqlDialects
                     }
                 }
                 observer.OnCompleted();
-                Dispose();
+                Close();
             });
-        }
-
-        protected virtual void Dispose(bool disposing)
-        {
-            Logger.Verbose(Messages.DisposingStatement);
-
-            if (_transaction != null)
-            {
-                _transaction.Dispose();
-            }
-
-            if (_connection != null)
-            {
-                _connection.Dispose();
-            }
-
-            if (_scope != null)
-            {
-                _scope.Dispose();
-            }
         }
 
         protected virtual DbCommand BuildCommand(string statement)
@@ -216,6 +197,24 @@ namespace NEventStore.Persistence.Sql.SqlDialects
         {
             param.Value = value ?? DBNull.Value;
             param.DbType = type ?? (value == null ? DbType.Binary : param.DbType);
+        }
+
+        private void Close()
+        {
+            if (_transaction != null)
+            {
+                _transaction.Dispose();
+            }
+
+            if (_connection != null)
+            {
+                _connection.Dispose();
+            }
+
+            if (_scope != null)
+            {
+                _scope.Dispose();
+            }
         }
     }
 }
