@@ -454,8 +454,8 @@ namespace NEventStore.Persistence.AcceptanceTests
 
     public class when_paging_over_all_commits_from_a_particular_checkpoint : PersistenceEngineConcern
     {
-        private List<Guid> _committed;
-        private ICollection<Guid> _loaded;
+        private IList<Guid> _committed;
+        private IList<Guid> _loaded;
         private Guid _streamId;
         private const int checkPoint = 2;
 
@@ -464,9 +464,10 @@ namespace NEventStore.Persistence.AcceptanceTests
             _committed = (await Persistence.CommitMany(ConfiguredPageSizeForTesting + 1)).Select(c => c.CommitId).ToList();
         }
 
-        protected override void Because()
+        protected override async Task BecauseAsync()
         {
-            _loaded = Persistence.GetFrom(checkPoint.ToString()).Select(c => c.CommitId).ToEnumerable().ToList();
+            _loaded = new List<Guid>();
+            await Persistence.GetFrom(checkPoint.ToString()).Select(c => c.CommitId).ForEachAsync(_loaded.Add);
         }
 
         [Fact]
@@ -495,9 +496,10 @@ namespace NEventStore.Persistence.AcceptanceTests
         }
 
         [Fact]
-        public void should_not_find_any_commits_stored()
+        public async Task should_not_find_any_commits_stored()
         {
-            Persistence.GetFrom().ToEnumerable().Count().Should().Be(0);
+            var count = await Persistence.GetFrom().Count();
+            count.Should().Be(0);
         }
 
         [Fact]
@@ -690,23 +692,23 @@ namespace NEventStore.Persistence.AcceptanceTests
         }
 
         [Fact]
-        public void should_purge_all_commits_stored_in_bucket_a()
+        public async Task should_purge_all_commits_stored_in_bucket_a()
         {
-            Persistence
-                .GetFrom()
-                .Select(c => c.BucketId == _bucketAId).ToEnumerable()
-                .Should()
-                .BeEmpty();
+            var count = await Persistence.GetFrom()
+                .Where(c => c.BucketId == _bucketAId)
+                .Count();
+
+            count.Should().Be(0);
         }
 
         [Fact]
-        public void should_purge_all_commits_stored_in_bucket_b()
+        public async Task should_purge_all_commits_stored_in_bucket_b()
         {
-            Persistence
-                .GetFrom()
-                .Select(c => c.BucketId == _bucketBId).ToEnumerable()
-                .Should()
-                .BeEmpty();
+            var count = await Persistence.GetFrom()
+                .Where(c => c.BucketId == _bucketBId)
+                .Count();
+
+            count.Should().Be(0);
         }
 
         [Fact]
@@ -724,7 +726,7 @@ namespace NEventStore.Persistence.AcceptanceTests
 
     public class when_gettingfromcheckpoint_amount_of_commits_exceeds_pagesize : PersistenceEngineConcern
     {
-        private ICommit[] _commits;
+        private IList<ICommit> _commits;
         private int _moreThanPageSize;
 
         protected override async Task BecauseAsync()
@@ -740,13 +742,14 @@ namespace NEventStore.Persistence.AcceptanceTests
                     await stream.CommitChanges(Guid.NewGuid());
                 }
             }
-            _commits = Persistence.GetFrom().ToEnumerable().ToArray();
+            _commits = new List<ICommit>();
+            await Persistence.GetFrom().ForEachAsync(_commits.Add);
         }
 
         [Fact]
         public void Should_have_expected_number_of_commits()
         {
-            _commits.Length.Should().Be(_moreThanPageSize);
+            _commits.Count.Should().Be(_moreThanPageSize);
         }
     }
 
