@@ -819,24 +819,36 @@ namespace NEventStore.Persistence.AcceptanceTests
         {
             if (_persistence != null && !_persistence.IsDisposed)
             {
-                int attempts = 0;
-                bool dropped = false;
-                
-                while (!dropped)
+                AttemptDropDatabase();
+
+                _persistence.Dispose();
+            }
+        }
+
+        /// <summary>
+        /// Because of potential async bugs and / or database slowness (ORACLE), the tables might still be locked when this runs.
+        /// An exception in Dispose might hide any test failures.
+        /// </summary>
+        private void AttemptDropDatabase()
+        {
+            int attempts = 0;
+            bool dropped = false;
+
+            while (!dropped)
+            {
+                try
                 {
-                    try
+                    attempts++;
+                    _persistence.Drop().Wait(TimeSpan.FromSeconds(5));
+                    dropped = true;
+                }
+                catch (Exception)
+                {
+                    if (attempts > 5)
                     {
-                        attempts++;
-                        _persistence.Drop().Wait(TimeSpan.FromSeconds(5));
-                        dropped = true;
-                    }
-                    catch (Exception ex)
-                    {
-                        if (attempts > 5) throw;
+                        throw;
                     }
                 }
-                
-                _persistence.Dispose();
             }
         }
     }
