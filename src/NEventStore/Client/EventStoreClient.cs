@@ -1,3 +1,5 @@
+using System.Reactive;
+
 namespace NEventStore.Client
 {
     using System;
@@ -6,6 +8,17 @@ namespace NEventStore.Client
     using System.Reactive.Linq;
     using System.Threading.Tasks;
     using NEventStore.Persistence;
+
+    public static class EventStoreClientExtensions
+    {
+        public static IObservable<ICommit> FromCheckpoint(this EventStoreClient client, string checkpointToken = null)
+        {
+            return Observable.Create<ICommit>(observer => client.Subscribe(checkpointToken, commit =>
+            {
+                observer.OnNext(commit);
+            }));
+        }
+    }
 
     public class EventStoreClient : IDisposable
     {
