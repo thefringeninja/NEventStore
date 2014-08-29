@@ -9,7 +9,7 @@
         public PersistenceEngineFixture()
         {
             _createPersistence = pageSize =>
-                new SqlPersistenceFactory(new EnviromentConnectionFactory("MsSql", "System.Data.SqlClient"),
+                new SqlPersistenceFactory(new ConfigurationConnectionFactory("MsSql", "System.Data.SqlClient", "Server=(localdb)\\v11.0;Integrated Security=true;"), 
                     new BinarySerializer(),
                     new MsSqlDialect(),
                     pageSize: pageSize).Build();

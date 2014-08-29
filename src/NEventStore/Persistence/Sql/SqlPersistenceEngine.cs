@@ -275,7 +275,7 @@ namespace NEventStore.Persistence.Sql
                 cmd.AddParameter(_dialect.CommitSequence, attempt.CommitSequence);
                 cmd.AddParameter(_dialect.CommitStamp, attempt.CommitStamp);
                 cmd.AddParameter(_dialect.Headers, _serializer.Serialize(attempt.Headers));
-                _dialect.AddPayloadParamater(_connectionFactory, connection, cmd, _serializer.Serialize(attempt.Events.ToList())).Wait();
+                await _dialect.AddPayloadParamater(_connectionFactory, connection, cmd, _serializer.Serialize(attempt.Events.ToList()));
                 OnPersistCommit(cmd, attempt);
                 var checkpointNumber = (await cmd.ExecuteScalar(_dialect.PersistCommit).NotOnCapturedContext()).ToLong();
                 ICommit commit = new Commit(
@@ -440,7 +440,7 @@ namespace NEventStore.Persistence.Sql
             ThrowWhenDisposed();
 
             using (TransactionScope scope = OpenCommandScope())
-            using (DbConnection connection = _connectionFactory.Open().Result)
+            using (DbConnection connection = await _connectionFactory.Open())
             using (IDbTransaction transaction = _dialect.OpenTransaction(connection))
             using (IDbStatement statement = _dialect.BuildStatement(scope, connection, transaction))
             {
